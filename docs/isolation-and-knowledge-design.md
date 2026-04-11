@@ -1,9 +1,9 @@
 # Goal Engine 数据隔离与认知架构设计方案
 
-> 状态：待评审  
+> 状态：已实施
 > 日期：2026-04-11  
 > 来源：Claude Code + Gemini + Codex 三方协作分析  
-> 版本：v0.1-draft
+> 版本：v0.2-implemented
 
 ---
 
@@ -38,6 +38,26 @@ Goal Engine v0 存在两个深层问题：
 - 旧经验作为知识保留，不丢失
 - 但不阻断任何动作，不造成约束
 - Agent 带着更丰富的理解进入新会话，自己判断哪些旧认知仍适用
+
+---
+
+## 2026-04-11 实施状态
+
+本设计已在 service、agent-adapter 和观察台 UI 中落地。实现保留 `avoid_strategy` / `avoid_strategies` 作为兼容字段，但 retry guard 不再因为命中 `avoid_strategy` 直接硬阻断；命中旧禁令时返回 warning/advisory，硬阻断只来自可解释执行门：
+
+- `policy_not_acknowledged`
+- `no_meaningful_change`
+- `repeated_failure_without_downgrade`
+
+已落地能力：
+
+- 所有核心事实表带 `agent_id`，并通过 `(agent_id, goal_id)` / `(agent_id, attempt_id)` 复合外键防止跨 Agent 读取。
+- 新增 `knowledge`、`knowledge_promotions`、`knowledge_reference_events` 三张表。
+- reflection 提交后会从失败 attempt 和反思内容派生 descriptive knowledge。
+- recovery packet 返回 `current_policy`、`recent_attempts`、`relevant_knowledge`、`shared_wisdom`、`open_questions`。
+- retry guard 读取相关 knowledge/shared wisdom，把上下文作为 advisory 返回，并持久化 knowledge reference event。
+- OpenClaw 展示层在 `show goal status`、`recover current goal`、`check retry` 中注入历史认知和共享建议。
+- UI detail 页新增 knowledge timeline/detail evidence，便于观察 Agent 如何使用认知。
 
 ---
 

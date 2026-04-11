@@ -85,10 +85,16 @@ test.describe('Goal Engine API E2E', () => {
       data: {
         allowed: boolean;
         reason: string;
+        warnings: string[];
       };
     };
     expect(blockedBody.data.allowed).toBe(false);
-    expect(blockedBody.data.reason).toBe('blocked_strategy_overlap');
+    expect(blockedBody.data.reason).toBe('no_meaningful_change');
+    expect(blockedBody.data.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('avoid_strategy'),
+      ])
+    );
 
     const allowedRes = await request.post('/api/v1/retry-guard/check', {
       data: {

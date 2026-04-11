@@ -1,6 +1,6 @@
 # Goal Engine v0 API Contract
 
-> 状态：可实施草案  
+> 状态：已实施契约
 > 日期：2026-04-03  
 > 目标：定义 Goal Engine v0 的正式 HTTP/API 契约，供 service 与 agent-adapter 实现
 
@@ -121,6 +121,7 @@ Agent 侧工具名与 HTTP 接口映射如下：
 | `policy_get_current` | `GET /api/v1/policies/current` |
 | `retry_guard_check` | `POST /api/v1/retry-guard/check` |
 | `recovery_packet_get` | `GET /api/v1/recovery-packet` |
+| `knowledge_create` | `POST /api/v1/knowledge` |
 
 ### 3.1 面向 OpenClaw 用户的显式入口
 
@@ -160,6 +161,9 @@ Agent 侧工具名与 HTTP 接口映射如下：
 | patch goal | `PATCH /api/v1/goals/:goalId` |
 | list attempts | `GET /api/v1/attempts` |
 | create reflection | `POST /api/v1/reflections` |
+| list knowledge | `GET /api/v1/knowledge?goal_id=...` |
+| promote knowledge | `POST /api/v1/knowledge/:knowledgeId/promotions` |
+| list shared wisdom | `GET /api/v1/knowledge/shared?subjects=...` |
 | health | `GET /api/v1/health` |
 
 ---
@@ -242,7 +246,76 @@ v0 冻结为：
 }
 ```
 
-### 4.5 Recovery Packet
+`avoid_strategies` is retained for backward compatibility. New behavior should treat it as risk context, not as a standalone hard ban.
+
+### 4.5 Knowledge
+
+```json
+{
+  "id": "knowledge_123",
+  "agent_id": "goal-engine-demo",
+  "goal_id": "goal_123",
+  "source_attempt_id": "attempt_123",
+  "context": "Goal stage research; attempted broad web search",
+  "observation": "The search produced noisy sources and no concrete rate-limit document",
+  "hypothesis": "The query scope was too broad for this evidence need",
+  "implication": "Use official docs or a narrower subject before retrying",
+  "related_strategy_tags": ["broad-web-search"],
+  "created_at": "2026-04-11T08:00:00.000Z"
+}
+```
+
+Knowledge is descriptive. It records what was observed and what that may imply; it does not forbid future action.
+
+### 4.6 Knowledge Promotion
+
+```json
+{
+  "id": "promotion_123",
+  "knowledge_id": "knowledge_123",
+  "visibility": "agent",
+  "agent_id": "goal-engine-demo",
+  "subject": "rate-limit-research",
+  "condition": { "stage": "research" },
+  "summary": "Broad web search was noisy for rate-limit evidence",
+  "recommendation": "Start with official API docs",
+  "confidence": 0.7,
+  "support_count": 1,
+  "created_at": "2026-04-11T08:00:00.000Z",
+  "updated_at": "2026-04-11T08:00:00.000Z"
+}
+```
+
+`visibility` values:
+
+- `private`: current agent/goal source knowledge
+- `agent`: reusable by the same agent across goals
+- `global`: reusable across agents, requires `reviewed: true` at promotion time
+
+### 4.7 Retry Guard Result
+
+```json
+{
+  "allowed": false,
+  "reason": "no_meaningful_change",
+  "warnings": [
+    "Strategy overlaps legacy avoid_strategy; treat this as risk context, not a hard block."
+  ],
+  "advisories": [
+    "Context: Goal stage research; attempted broad web search. Implication: Use official docs or a narrower subject before retrying."
+  ],
+  "knowledge_context": [],
+  "referenced_knowledge_ids": []
+}
+```
+
+Important behavior:
+
+- `blocked_strategy_overlap` remains in the type union for historical event compatibility.
+- New checks do not hard-block solely because a planned strategy overlaps `avoid_strategy`.
+- Overlap is surfaced through `warnings`; the hard-block reason should come from missing acknowledgement, no meaningful change, or repeated failure without downgrade.
+
+### 4.8 Recovery Packet
 
 ```json
 {

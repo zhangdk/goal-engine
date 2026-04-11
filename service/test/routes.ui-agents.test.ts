@@ -331,6 +331,55 @@ describe('UI agent routes', () => {
     );
   });
 
+  it('merges partial runtime managed-agent state with workspace managed agents', async () => {
+    const runtimeStateDir = mkdtempSync(join(tmpdir(), 'goal-engine-runtime-state-'));
+    const runtimeStatePath = join(runtimeStateDir, 'runtime-state.json');
+    writeFileSync(
+      runtimeStatePath,
+      JSON.stringify({
+        goalEngine: {
+          currentManagedAgentId: 'goal-engine-demo',
+          managedAgents: [
+            {
+              agentId: 'goal-engine-demo',
+              agentName: 'goal-engine-demo',
+              workspace: '/tmp/workspace',
+              session: 'main',
+              managed: true,
+            },
+          ],
+        },
+      }),
+      'utf-8'
+    );
+
+    const runtimeApp = createApp(makeTestDb(), {
+      ui: {
+        workspaceStatePath: fixtureWorkspaceStatePath,
+        runtimeStatePath,
+      },
+    });
+
+    const listRes = await runtimeApp.request('/api/v1/ui/agents');
+    expect(listRes.status).toBe(200);
+    const listBody = (await listRes.json()) as AgentListResponse;
+
+    expect(listBody.data.agents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          agent_id: 'goal-engine-demo',
+          workspace: '/tmp/workspace',
+          session: 'main',
+        }),
+        expect.objectContaining({
+          agent_id: 'goal-engine-research',
+          workspace: 'goal-engine',
+          session: 'research',
+        }),
+      ])
+    );
+  });
+
   it('returns a no-evidence detail view for a newly started goal', async () => {
     const goalRes = await app.request('/api/v1/goals', {
       method: 'POST',

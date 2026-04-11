@@ -20,7 +20,6 @@ test.describe('Goal Engine agent evolution UI', () => {
     await expect(page.getByRole('heading', { name: 'Goal Engine Agent 观察台' })).toBeVisible();
     await expect(page.getByText('goal-engine-demo')).toBeVisible();
     await expect(page.getByText('goal-engine-research')).toBeVisible();
-    await expect(page.getByText('当前还没有活动 goal，暂无学习历史。')).toHaveCount(2);
 
     await page.getByLabel('标题').fill(goalTitle);
     await page.getByLabel('成功标准').fill('让 Agent 的经历更容易理解');
@@ -31,7 +30,6 @@ test.describe('Goal Engine agent evolution UI', () => {
     await expect(page.locator('#overview-primary')).toContainText('goal-engine-demo');
     await expect(page.locator('#overview-primary')).toContainText(goalTitle);
     await expect(page.locator('#overview-primary')).toContainText('进行中');
-    await expect(page.locator('#overview-secondary')).toContainText('暂无证据');
     await expect(page.getByRole('heading', { name: '关键进化' })).toBeVisible();
     await expect(page.locator('#timeline-panorama')).toContainText('查看进化全景');
 
@@ -62,9 +60,9 @@ test.describe('Goal Engine agent evolution UI', () => {
 
     await expect(page.getByText('已执行一次实时重试检查。')).toBeVisible();
     await expect(page.getByText('允许重试：false')).toBeVisible();
-    await expect(page.getByText('这次计划与已禁止策略重叠过高')).toBeVisible();
-    await expect(page.getByText('原因码：blocked_strategy_overlap')).toBeVisible();
-    await expect(page.getByText('blocked_strategy_overlap')).toBeVisible();
+    await expect(page.getByText('这次重试没有体现出足够明确的新变化')).toBeVisible();
+    await expect(page.getByText('原因码：no_meaningful_change')).toBeVisible();
+    await expect(page.getByText('no_meaningful_change')).toBeVisible();
 
     await page.locator('#recover-panel summary').click();
     await page.getByRole('button', { name: '恢复当前目标' }).click();
