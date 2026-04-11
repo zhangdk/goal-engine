@@ -20,6 +20,7 @@ import { reflectionsRouter } from './routes/reflections.js';
 import { policiesRouter } from './routes/policies.js';
 import { retryGuardRouter } from './routes/retry-guard.js';
 import { recoveryRouter } from './routes/recovery.js';
+import { knowledgeRouter } from './routes/knowledge.js';
 import { healthRouter } from './routes/health.js';
 import { uiApiRouter, uiPageRouter } from './routes/ui.js';
 
@@ -62,6 +63,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
   app.route('/api/v1/retry-guard', retryGuardRouter(goalRepo, policyRepo, attemptRepo, retryHistoryRepo, goalAgentHistoryService));
   app.route('/api/v1/recovery-packet', recoveryRouter(recoveryService, recoveryEventRepo, goalAgentHistoryService));
+  app.route('/api/v1/knowledge', knowledgeRouter(goalRepo, attemptRepo, knowledgeService));
   app.route('/api/v1/health', healthRouter());
   app.route('/api/v1/ui', uiApiRouter(goalRepo, attemptRepo, reflectionRepo, policyRepo, retryHistoryRepo, recoveryEventRepo, goalAgentAssignmentRepo, goalAgentHistoryService, recoveryService, {
     projectionDir: options?.ui?.projectionDir,
