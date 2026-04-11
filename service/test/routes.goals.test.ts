@@ -164,6 +164,17 @@ describe('POST /api/v1/goals', () => {
 });
 
 describe('GET /api/v1/goals/current', () => {
+  it('returns 422 for invalid X-Agent-Id instead of 500', async () => {
+    const res = await app.request('/api/v1/goals/current', {
+      headers: { 'X-Agent-Id': '../bad' },
+    });
+
+    expect(res.status).toBe(422);
+    const body = await res.json() as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('validation_error');
+    expect(body.error.message).toContain('X-Agent-Id');
+  });
+
   it('returns 404 when no active goal exists', async () => {
     const res = await app.request('/api/v1/goals/current');
     expect(res.status).toBe(404);

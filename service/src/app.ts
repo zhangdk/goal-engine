@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type Database from 'better-sqlite3';
+import { InvalidAgentIdError } from './agent-context.js';
 import { GoalRepo } from './repos/goal.repo.js';
 import { AttemptRepo } from './repos/attempt.repo.js';
 import { ReflectionRepo } from './repos/reflection.repo.js';
@@ -34,6 +35,18 @@ type CreateAppOptions = {
 
 export function createApp(db: Database.Database, options?: CreateAppOptions): Hono {
   const app = new Hono();
+
+  app.onError((err, c) => {
+    if (err instanceof InvalidAgentIdError) {
+      return c.json({
+        error: {
+          code: 'validation_error',
+          message: err.message,
+        },
+      }, 422);
+    }
+    throw err;
+  });
 
   // Repos
   const goalRepo = new GoalRepo(db);
