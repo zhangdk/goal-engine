@@ -284,7 +284,71 @@ describe('showGoalStatus', () => {
     expect(result.summary).toContain('Current guidance: not available yet.');
     expect(result.summary).toContain('Local projection: missing current goal, current guidance, recovery summary.');
     expect(result.summary).toContain('Run recover current goal to rebuild the local summary files.');
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows relevant knowledge in goal status output', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            id: 'goal_1',
+            title: 'Find event',
+            status: 'active',
+            success_criteria: ['Find one event'],
+            stop_conditions: [],
+            priority: 1,
+            current_stage: 'search',
+            created_at: '2026-04-11T00:00:00.000Z',
+            updated_at: '2026-04-11T00:00:00.000Z',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          error: { code: 'no_policy_yet', message: 'No policy yet' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            goal_id: 'goal_1',
+            goal_title: 'Find event',
+            current_stage: 'search',
+            success_criteria: ['Find one event'],
+            avoid_strategies: [],
+            relevant_knowledge: [
+              {
+                id: 'know_1',
+                goal_id: 'goal_1',
+                context: 'search stage',
+                observation: 'Aggregator was stale.',
+                hypothesis: 'Third-party index lag.',
+                implication: 'Check official pages.',
+                related_strategy_tags: ['event_search'],
+                created_at: '2026-04-11T00:00:00.000Z',
+              },
+            ],
+            shared_wisdom: [],
+            recent_attempts: [],
+            open_questions: [],
+            generated_at: '2026-04-11T00:00:00.000Z',
+          },
+        }),
+      });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await showGoalStatus(client, { projectionDir: createTempProjectionDir() });
+
+    expect(result.summary).toContain('## 历史认知');
+    expect(result.summary).toContain('Check official pages.');
   });
 
   it('returns an empty-state summary when there is no active goal', async () => {
@@ -671,6 +735,55 @@ describe('recoverGoalSession', () => {
     expect(result.summary).toContain('Ship Goal Engine UX');
     expect(result.summary).toContain('Repeated the same path');
     expect(result.summary).toContain('Try a different path');
+  });
+
+  it('includes relevant knowledge in recovery summary', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            goal_id: 'goal_1',
+            goal_title: 'Find event',
+            current_stage: 'search',
+            success_criteria: ['Find one event'],
+            last_failure_summary: 'Aggregator failed',
+            avoid_strategies: [],
+            preferred_next_step: 'Check official pages',
+            relevant_knowledge: [
+              {
+                id: 'know_1',
+                goal_id: 'goal_1',
+                context: 'search',
+                observation: 'Aggregator was stale.',
+                hypothesis: 'Index lag.',
+                implication: 'Check official pages.',
+                related_strategy_tags: ['event_search'],
+                created_at: '2026-04-11T00:00:00.000Z',
+              },
+            ],
+            shared_wisdom: [],
+            recent_attempts: [],
+            open_questions: [],
+            generated_at: '2026-04-11T00:00:00.000Z',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          error: { code: 'no_policy_yet', message: 'No policy yet' },
+        }),
+      });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await recoverGoalSession(client, { goalId: 'goal_1' });
+
+    expect(result.summary).toContain('## 历史认知');
+    expect(result.summary).toContain('Check official pages.');
   });
 
   it('labels recovery source as projection when local projection files are already available', async () => {

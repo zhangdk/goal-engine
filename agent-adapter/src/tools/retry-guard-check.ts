@@ -14,6 +14,8 @@ type RetryGuardSnake = {
   reason: string;
   warnings: string[];
   tag_overlap_rate?: number;
+  advisories?: string[];
+  referenced_knowledge_ids?: string[];
 };
 
 export async function retryGuardCheck(
@@ -33,5 +35,7 @@ export async function retryGuardCheck(
     reason: raw.reason as RetryGuardResult['reason'],
     warnings: raw.warnings,
     tagOverlapRate: raw.tag_overlap_rate,
+    advisories: raw.advisories ?? [],
+    referencedKnowledgeIds: raw.referenced_knowledge_ids ?? [],
   };
 }

@@ -17,6 +17,7 @@ import { retryGuardCheck } from '../src/tools/retry-guard-check.js';
 import { recoveryPacketGet } from '../src/tools/recovery-packet-get.js';
 import { policyGetCurrent } from '../src/tools/policy-get-current.js';
 import { reflectionCreate } from '../src/tools/reflection-create.js';
+import { knowledgeCreate } from '../src/tools/knowledge-create.js';
 
 // ─── Mock fetch ───────────────────────────────────────────────────────────────
 
@@ -228,6 +229,41 @@ describe('reflectionCreate', () => {
 
     expect(result.knowledge?.observation).toBe('Timed out');
     expect(result.knowledge?.relatedStrategyTags).toEqual(['broad-web-search']);
+  });
+});
+
+describe('knowledgeCreate', () => {
+  it('serializes explicit knowledge creation and maps response to camelCase', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        id: 'know_1',
+        goal_id: 'goal_1',
+        source_attempt_id: 'attempt_1',
+        context: 'search stage',
+        observation: 'Aggregator failed',
+        hypothesis: 'Index lag',
+        implication: 'Check official pages',
+        related_strategy_tags: ['event_search'],
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const knowledge = await knowledgeCreate(client, {
+      goalId: 'goal_1',
+      sourceAttemptId: 'attempt_1',
+      context: 'search stage',
+      observation: 'Aggregator failed',
+      hypothesis: 'Index lag',
+      implication: 'Check official pages',
+      relatedStrategyTags: ['event_search'],
+    });
+
+    const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.source_attempt_id).toBe('attempt_1');
+    expect(callBody.related_strategy_tags).toEqual(['event_search']);
+    expect(knowledge.sourceAttemptId).toBe('attempt_1');
+    expect(knowledge.relatedStrategyTags).toEqual(['event_search']);
   });
 });
 
