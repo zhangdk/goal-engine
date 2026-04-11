@@ -5,7 +5,9 @@ import { randomUUID } from 'node:crypto';
 import * as runtimeModule from '../../../shared/runtime.js';
 import type { FailureType } from '../../../shared/types.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
+import type { GoalRepo } from '../repos/goal.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
+import { resolveAgentContext } from '../agent-context.js';
 
 const runtime = 'default' in runtimeModule ? runtimeModule.default : runtimeModule;
 const { FAILURE_TYPES } = runtime;
@@ -32,6 +34,7 @@ const createAttemptSchema = z
   );
 
 export function attemptsRouter(
+  goalRepo: GoalRepo,
   attemptRepo: AttemptRepo,
   goalAgentHistoryService: GoalAgentHistoryService
 ): Hono {
@@ -42,6 +45,7 @@ export function attemptsRouter(
       return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
     }
   }), (c) => {
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
     const data = c.req.valid('json');
     const id = randomUUID();
     const now = new Date().toISOString();
@@ -50,6 +54,7 @@ export function attemptsRouter(
     try {
       attemptRepo.create({
         id,
+        agentId,
         goalId: data.goal_id,
         stage: data.stage,
         actionTaken: data.action_taken,
@@ -73,12 +78,13 @@ export function attemptsRouter(
       }, 500);
     }
 
-    const attempt = attemptRepo.getById(id)!;
-    goalAgentHistoryService.touchGoal(attempt.goalId, 'attempt_recorded', attempt.createdAt);
+    const attempt = attemptRepo.getById(agentId, id)!;
+    goalAgentHistoryService.touchGoal(attempt.goalId, 'attempt_recorded', attempt.createdAt, agentId);
     return c.json({ data: toSnakeCase(attempt) }, 201);
   });
 
   router.get('/', (c) => {
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
     const goalId = c.req.query('goal_id');
     if (!goalId) {
       return c.json({ error: { code: 'validation_error', message: 'goal_id is required' } }, 422);
@@ -88,7 +94,12 @@ export function attemptsRouter(
     const result = c.req.query('result');
     const stage = c.req.query('stage');
 
-    const attempts = attemptRepo.listByGoal(goalId, { limit, result, stage });
+    const goal = goalRepo.getById(agentId, goalId);
+    if (!goal) {
+      return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
+    }
+
+    const attempts = attemptRepo.listByGoal(agentId, goalId, { limit, result, stage });
     return c.json({ data: attempts.map(toSnakeCase), meta: { limit } });
   });
 
@@ -113,6 +124,7 @@ function normalizeFailureType(input: AttemptFailureTypeInput | undefined): Failu
 
 function toSnakeCase(attempt: {
   id: string;
+  agentId: string;
   goalId: string;
   stage: string;
   actionTaken: string;
@@ -125,6 +137,7 @@ function toSnakeCase(attempt: {
 }) {
   return {
     id: attempt.id,
+    agent_id: attempt.agentId,
     goal_id: attempt.goalId,
     stage: attempt.stage,
     action_taken: attempt.actionTaken,

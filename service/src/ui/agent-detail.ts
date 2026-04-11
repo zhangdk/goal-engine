@@ -10,7 +10,6 @@ import { buildTimeline } from './timeline.js';
 import { evaluateLearningVerdict } from './verdict.js';
 import { deriveExecutionPathState } from './path-analysis.js';
 import {
-  getCurrentManagedOpenClawAgent,
   getGoalAlignmentSnapshotByAgentId,
   getManagedOpenClawAgentById,
   getRuntimeEventsByAgentId,
@@ -105,23 +104,18 @@ export function buildAgentDetail(
     return null;
   }
 
-  const currentManagedAgent = getCurrentManagedOpenClawAgent({
-    workspaceStatePath: deps.workspaceStatePath,
-    runtimeStatePath: deps.runtimeStatePath,
-  });
-  const goal = deps.goalRepo.getCurrent();
+  const goal = deps.goalRepo.getCurrent(managedAgent.agentId);
   const attachedGoal =
     goal &&
-    managedAgent.managed &&
-    currentManagedAgent?.agentId === managedAgent.agentId
+    managedAgent.managed
       ? goal
       : null;
-  const attempts = attachedGoal ? deps.attemptRepo.listByGoal(attachedGoal.id, { limit: 100 }) : [];
-  const reflections = attachedGoal ? deps.reflectionRepo.listByGoal(attachedGoal.id) : [];
-  const policy = attachedGoal ? deps.policyRepo.getByGoal(attachedGoal.id) : null;
-  const recovery = attachedGoal ? deps.recoveryService.build(attachedGoal.id) : null;
-  const retryChecks = attachedGoal ? deps.retryHistoryRepo.listByGoal(attachedGoal.id, 100) : [];
-  const recoveryEvents = attachedGoal ? deps.recoveryEventRepo.listByGoal(attachedGoal.id, 100) : [];
+  const attempts = attachedGoal ? deps.attemptRepo.listByGoal(managedAgent.agentId, attachedGoal.id, { limit: 100 }) : [];
+  const reflections = attachedGoal ? deps.reflectionRepo.listByGoal(managedAgent.agentId, attachedGoal.id) : [];
+  const policy = attachedGoal ? deps.policyRepo.getByGoal(managedAgent.agentId, attachedGoal.id) : null;
+  const recovery = attachedGoal ? deps.recoveryService.build(managedAgent.agentId, attachedGoal.id) : null;
+  const retryChecks = attachedGoal ? deps.retryHistoryRepo.listByGoal(managedAgent.agentId, attachedGoal.id, 100) : [];
+  const recoveryEvents = attachedGoal ? deps.recoveryEventRepo.listByGoal(managedAgent.agentId, attachedGoal.id, 100) : [];
   const goalHistory = deps.goalAgentAssignmentRepo.listGoalHistoryByAgent(managedAgent.agentId, 50);
   const goalAlignmentSnapshot = getGoalAlignmentSnapshotByAgentId(managedAgent.agentId, {
     workspaceStatePath: deps.workspaceStatePath,

@@ -8,6 +8,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_AGENT_ID } from '../src/agent-context.js';
 
 function makeWorkspaceState(agents: Array<{ agentId: string; agentName: string; workspace: string; session: string; managed: boolean }>): string {
   const dir = mkdtempSync(join(tmpdir(), 'ge-test-'));
@@ -34,6 +35,74 @@ function makeRuntimeState(agent: { agentId: string; agentName: string; workspace
 }
 
 describe('db schema migration', () => {
+  it('backfills legacy goal data to the default agent and permits per-agent active goals', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+CREATE TABLE goals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  success_criteria TEXT NOT NULL,
+  stop_conditions TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  current_stage TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX idx_goals_single_active
+  ON goals(status)
+  WHERE status = 'active';
+INSERT INTO goals (
+  id,
+  title,
+  status,
+  success_criteria,
+  stop_conditions,
+  priority,
+  current_stage,
+  created_at,
+  updated_at
+)
+VALUES (
+  'legacy-active-goal',
+  'Legacy active goal',
+  'active',
+  '["legacy succeeds"]',
+  '[]',
+  1,
+  'legacy',
+  '2026-04-10T06:00:00.000Z',
+  '2026-04-10T06:00:00.000Z'
+);
+`);
+
+    applySchema(db);
+
+    const legacyRow = db.prepare(
+      `SELECT agent_id FROM goals WHERE id = ?`
+    ).get('legacy-active-goal') as { agent_id: string };
+    expect(legacyRow.agent_id).toBe(DEFAULT_AGENT_ID);
+
+    const goalRepo = new GoalRepo(db);
+    expect(goalRepo.getCurrent(DEFAULT_AGENT_ID)?.id).toBe('legacy-active-goal');
+
+    const otherGoalId = randomUUID();
+    expect(() => goalRepo.create({
+      id: otherGoalId,
+      agentId: 'agent-b',
+      title: 'Agent B active goal',
+      status: 'active',
+      successCriteria: ['B succeeds'],
+      stopConditions: [],
+      priority: 1,
+      currentStage: 'initial',
+      createdAt: '2026-04-10T06:01:00.000Z',
+      updatedAt: '2026-04-10T06:01:00.000Z',
+    })).not.toThrow();
+    expect(goalRepo.getCurrent('agent-b')?.id).toBe(otherGoalId);
+  });
+
   it('upgrades goal_agent_assignments constraint to allow session_rollover', () => {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');

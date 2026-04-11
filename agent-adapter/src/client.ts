@@ -16,7 +16,8 @@ export type AdapterError = {
 export class AdapterClient {
   constructor(
     public readonly baseUrl: string,
-    private fetchImpl: typeof globalThis.fetch = globalThis.fetch
+    private fetchImpl: typeof globalThis.fetch = globalThis.fetch,
+    private readonly agentId?: string
   ) {}
 
   async get<T>(path: string): Promise<T> {
@@ -44,10 +45,23 @@ export class AdapterClient {
 
   private async safeFetch(input: string, init?: RequestInit): Promise<Response> {
     try {
-      return await this.fetchImpl(input, init);
+      return await this.fetchImpl(input, this.withAgentHeader(init));
     } catch {
       throw createAdapterError('service_unavailable', 503);
     }
+  }
+
+  private withAgentHeader(init?: RequestInit): RequestInit | undefined {
+    if (!this.agentId) {
+      return init;
+    }
+
+    const headers = new Headers(init?.headers);
+    headers.set('X-Agent-Id', this.agentId);
+    return {
+      ...init,
+      headers,
+    };
   }
 
   private async handleResponse<T>(res: Response): Promise<T> {

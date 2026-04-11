@@ -13,6 +13,7 @@ export type AttemptResult = 'success' | 'partial' | 'failure';
 
 export type Goal = {
   id: string;
+  agentId: string;
   title: string;
   status: GoalStatus;
   successCriteria: string[];
@@ -25,6 +26,7 @@ export type Goal = {
 
 export type Attempt = {
   id: string;
+  agentId: string;
   goalId: string;
   stage: string;
   actionTaken: string;
@@ -38,6 +40,7 @@ export type Attempt = {
 
 export type Reflection = {
   id: string;
+  agentId: string;
   goalId: string;
   attemptId: string;
   summary: string;
@@ -49,6 +52,7 @@ export type Reflection = {
 
 export type Policy = {
   id: string;
+  agentId: string;
   goalId: string;
   preferredNextStep?: string;
   avoidStrategies: string[];
@@ -57,6 +61,7 @@ export type Policy = {
 };
 
 export type RecoveryPacket = {
+  agentId: string;
   goalId: string;
   goalTitle: string;
   currentStage: string;
@@ -77,6 +82,7 @@ export type RetryGuardResult = {
 
 export type RetryCheckEvent = {
   id: string;
+  agentId: string;
   goalId: string;
   plannedAction: string;
   whatChanged: string;
@@ -91,6 +97,7 @@ export type RetryCheckEvent = {
 
 export type RecoveryEvent = {
   id: string;
+  agentId: string;
   goalId: string;
   goalTitle: string;
   currentStage: string;

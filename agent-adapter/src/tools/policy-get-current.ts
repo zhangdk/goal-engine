@@ -3,6 +3,7 @@ import type { Policy } from '../../../shared/types.js';
 
 type PolicySnake = {
   id: string;
+  agent_id?: string;
   goal_id: string;
   preferred_next_step?: string;
   avoid_strategies: string[];
@@ -13,6 +14,7 @@ type PolicySnake = {
 function toCamel(raw: PolicySnake): Policy {
   return {
     id: raw.id,
+    agentId: raw.agent_id ?? 'goal-engine-demo',
     goalId: raw.goal_id,
     preferredNextStep: raw.preferred_next_step,
     avoidStrategies: raw.avoid_strategies,

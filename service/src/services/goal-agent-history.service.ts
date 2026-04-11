@@ -15,16 +15,17 @@ export class GoalAgentHistoryService {
     private options?: GoalAgentHistoryServiceOptions
   ) {}
 
-  recordGoalStart(goalId: string, timestamp: string): void {
-    this.touchGoal(goalId, 'goal_started', timestamp);
+  recordGoalStart(goalId: string, timestamp: string, agentId?: string): void {
+    this.touchGoal(goalId, 'goal_started', timestamp, agentId);
   }
 
   touchGoal(
     goalId: string,
     reason: 'goal_started' | 'attempt_recorded' | 'reflection_recorded' | 'retry_checked' | 'recovery',
-    timestamp = new Date().toISOString()
+    timestamp = new Date().toISOString(),
+    agentId?: string
   ): void {
-    const goal = this.goalRepo.getById(goalId);
+    const goal = agentId ? this.goalRepo.getById(agentId, goalId) : this.goalRepo.getById(goalId);
     const managedAgent = getCurrentManagedOpenClawAgent(this.options);
     if (!goal || !managedAgent) {
       return;

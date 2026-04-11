@@ -2,7 +2,7 @@ import { DEFAULT_SERVICE_URL } from '../config.js';
 import { AdapterClient } from '../client.js';
 import { bootstrapSession } from './bootstrap-session.js';
 import { dispatchEntrypoint, type DispatchEntrypointInput } from './dispatch-entrypoint.js';
-import { syncRuntimeStateFromWorkspace } from './runtime-state.js';
+import { readCurrentManagedAgent, syncRuntimeStateFromWorkspace } from './runtime-state.js';
 
 export type OpenClawCliCommand =
   | {
@@ -80,22 +80,22 @@ export async function runOpenClawCli(
   dependencies: {
     bootstrapSession: typeof bootstrapSession;
     dispatchEntrypoint: typeof dispatchEntrypoint;
-    createClient: (serviceUrl: string) => AdapterClient;
+    createClient: (serviceUrl: string, agentId?: string) => AdapterClient;
     writeStdout: (text: string) => void;
   } = {
     bootstrapSession,
     dispatchEntrypoint,
-    createClient: serviceUrl => new AdapterClient(serviceUrl),
+    createClient: (serviceUrl, agentId) => new AdapterClient(serviceUrl, globalThis.fetch, agentId),
     writeStdout: text => process.stdout.write(text),
   }
 ): Promise<void> {
   const command = parseOpenClawCliArgs(argv);
-  const client = dependencies.createClient(command.serviceUrl);
   syncRuntimeStateFromWorkspace({
     workspaceStatePath: command.workspaceStatePath,
     runtimeStatePath: command.runtimeStatePath,
     runtimeContext: command.runtimeContext,
   });
+  const client = dependencies.createClient(command.serviceUrl, resolveAgentId(command));
 
   if (command.kind === 'bootstrap') {
     const result = await dependencies.bootstrapSession(client, {
@@ -110,6 +110,14 @@ export async function runOpenClawCli(
     runtimeContext: command.runtimeContext,
   });
   dependencies.writeStdout(`${JSON.stringify(result, null, 2)}\n`);
+}
+
+function resolveAgentId(command: OpenClawCliCommand): string | undefined {
+  if (command.runtimeContext?.agentId) {
+    return command.runtimeContext.agentId;
+  }
+
+  return readCurrentManagedAgent({ runtimeStatePath: command.runtimeStatePath })?.agentId;
 }
 
 export function formatCliError(err: unknown): string {

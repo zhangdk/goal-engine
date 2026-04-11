@@ -58,6 +58,17 @@ describe('AdapterClient', () => {
       message: 'Goal Engine service returned an unexpected error',
     });
   });
+
+  it('sends X-Agent-Id when constructed with an agent id', async () => {
+    const fetch = mockFetch(200, { data: { ok: true } });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch, 'agent-a');
+
+    await client.post('/api/v1/goals', { title: 'Agent scoped goal' });
+
+    const [, init] = fetch.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get('X-Agent-Id')).toBe('agent-a');
+  });
 });
 
 // ─── goal_get_current ─────────────────────────────────────────────────────────

@@ -187,6 +187,60 @@ describe('UI agent routes', () => {
     );
   });
 
+  it('shows each managed agent its own active goal', async () => {
+    const demoGoalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'goal-engine-demo' },
+      body: JSON.stringify({
+        title: 'Demo agent goal',
+        success_criteria: ['Keep demo scoped'],
+        current_stage: 'demo',
+      }),
+    });
+    expect(demoGoalRes.status).toBe(201);
+
+    const researchGoalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'goal-engine-research' },
+      body: JSON.stringify({
+        title: 'Research agent goal',
+        success_criteria: ['Keep research scoped'],
+        current_stage: 'research',
+      }),
+    });
+    expect(researchGoalRes.status).toBe(201);
+
+    const listRes = await app.request('/api/v1/ui/agents');
+    const listBody = (await listRes.json()) as AgentListResponse;
+    expect(listBody.data.agents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          agent_id: 'goal-engine-demo',
+          current_goal: 'Demo agent goal',
+        }),
+        expect.objectContaining({
+          agent_id: 'goal-engine-research',
+          current_goal: 'Research agent goal',
+        }),
+      ])
+    );
+
+    const researchDetailRes = await app.request('/api/v1/ui/agents/goal-engine-research');
+    const researchDetailBody = (await researchDetailRes.json()) as AgentDetailResponse;
+    expect(researchDetailBody.data.header).toEqual(
+      expect.objectContaining({
+        agent_id: 'goal-engine-research',
+        current_goal: 'Research agent goal',
+      })
+    );
+    expect(researchDetailBody.data.current_state).toEqual(
+      expect.objectContaining({
+        goal_title: 'Research agent goal',
+        current_stage: 'research',
+      })
+    );
+  });
+
   it('prefers runtime-state over workspace-state for the current managed agent', async () => {
     const runtimeStateDir = mkdtempSync(join(tmpdir(), 'goal-engine-runtime-state-'));
     const runtimeStatePath = join(runtimeStateDir, 'runtime-state.json');
@@ -225,7 +279,7 @@ describe('UI agent routes', () => {
 
     const goalRes = await runtimeApp.request('/api/v1/goals', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'goal-engine-research' },
       body: JSON.stringify({
         title: 'Runtime managed agent journey',
         success_criteria: ['Attach active goal to runtime-selected agent'],

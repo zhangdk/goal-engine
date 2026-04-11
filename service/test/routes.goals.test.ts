@@ -70,6 +70,35 @@ describe('POST /api/v1/goals', () => {
     );
   });
 
+  it('allows one active goal per agent', async () => {
+    const agentAHeaders = { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' };
+    const agentBHeaders = { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-b' };
+
+    const firstRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: agentAHeaders,
+      body: JSON.stringify({
+        title: 'Agent A Goal',
+        success_criteria: ['A succeeds'],
+        stop_conditions: [],
+        current_stage: 'init',
+      }),
+    });
+    expect(firstRes.status).toBe(201);
+
+    const secondRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: agentBHeaders,
+      body: JSON.stringify({
+        title: 'Agent B Goal',
+        success_criteria: ['B succeeds'],
+        stop_conditions: [],
+        current_stage: 'init',
+      }),
+    });
+    expect(secondRes.status).toBe(201);
+  });
+
   it('replaces the current active goal when replace_active is true', async () => {
     const firstRes = await app.request('/api/v1/goals', {
       method: 'POST',
@@ -158,6 +187,44 @@ describe('GET /api/v1/goals/current', () => {
     expect(res.status).toBe(200);
     const body = await res.json() as { data: { title: string } };
     expect(body.data.title).toBe('当前目标');
+  });
+
+  it('returns the current active goal for the requesting agent only', async () => {
+    await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        title: 'Agent A Current Goal',
+        success_criteria: ['A succeeds'],
+        stop_conditions: [],
+        current_stage: 'research',
+      }),
+    });
+
+    await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-b' },
+      body: JSON.stringify({
+        title: 'Agent B Current Goal',
+        success_criteria: ['B succeeds'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+
+    const agentARes = await app.request('/api/v1/goals/current', {
+      headers: { 'X-Agent-Id': 'agent-a' },
+    });
+    const agentBRes = await app.request('/api/v1/goals/current', {
+      headers: { 'X-Agent-Id': 'agent-b' },
+    });
+
+    expect(agentARes.status).toBe(200);
+    expect(agentBRes.status).toBe(200);
+    const agentABody = await agentARes.json() as { data: { title: string } };
+    const agentBBody = await agentBRes.json() as { data: { title: string } };
+    expect(agentABody.data.title).toBe('Agent A Current Goal');
+    expect(agentBBody.data.title).toBe('Agent B Current Goal');
   });
 });
 

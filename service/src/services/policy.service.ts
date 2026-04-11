@@ -27,9 +27,11 @@ import type { GoalRepo } from '../repos/goal.repo.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { ReflectionRepo } from '../repos/reflection.repo.js';
 import type { PolicyRepo } from '../repos/policy.repo.js';
+import { DEFAULT_AGENT_ID } from '../agent-context.js';
 
 export type WriteReflectionInput = {
   reflectionId?: string;
+  agentId?: string;
   goalId: string;
   attemptId: string;
   summary: string;
@@ -68,6 +70,7 @@ export class PolicyService {
    */
   writeReflectionAndUpdatePolicy(input: WriteReflectionInput): WriteReflectionResult {
     const reflectionId = input.reflectionId ?? randomUUID();
+    const agentId = input.agentId ?? DEFAULT_AGENT_ID;
     const now = new Date().toISOString();
 
     let reflection!: Reflection;
@@ -77,6 +80,7 @@ export class PolicyService {
       // 1. 写入 reflection
       reflection = {
         id: reflectionId,
+        agentId,
         goalId: input.goalId,
         attemptId: input.attemptId,
         summary: input.summary,
@@ -88,7 +92,7 @@ export class PolicyService {
       this.reflectionRepo.create(reflection);
 
       // 2. 读取当前 policy（如有），做幂等合并
-      const existing = this.policyRepo.getByGoal(input.goalId);
+      const existing = this.policyRepo.getByGoal(agentId, input.goalId);
 
       const existingAvoid: string[] = existing?.avoidStrategies ?? [];
       const existingMustCheck: string[] = existing?.mustCheckBeforeRetry ?? [];
@@ -104,6 +108,7 @@ export class PolicyService {
 
       policy = {
         id: existing?.id ?? randomUUID(),
+        agentId,
         goalId: input.goalId,
         preferredNextStep: input.mustChange || existing?.preferredNextStep,
         avoidStrategies: mergedAvoid,

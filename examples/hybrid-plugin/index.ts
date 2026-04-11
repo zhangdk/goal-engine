@@ -13,8 +13,8 @@
 
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import type { GoalEngineRuntimeEvent } from '../../../agent-adapter/src/openclaw/runtime-state.js';
-import { writeProjections } from '../../workspace/goal-engine/projection-writer.js';
+import type { GoalEngineRuntimeEvent } from '../../agent-adapter/src/openclaw/runtime-state.js';
+import { writeProjections } from '../workspace/goal-engine/projection-writer.js';
 
 const repoRoot = dirname(fileURLToPath(import.meta.url));
 

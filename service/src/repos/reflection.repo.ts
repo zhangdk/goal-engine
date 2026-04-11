@@ -1,8 +1,10 @@
 import Database from 'better-sqlite3';
 import type { Reflection } from '../../../shared/types.js';
+import { DEFAULT_AGENT_ID } from '../agent-context.js';
 
 type ReflectionRow = {
   id: string;
+  agent_id: string;
   goal_id: string;
   attempt_id: string;
   summary: string;
@@ -15,6 +17,7 @@ type ReflectionRow = {
 function rowToReflection(row: ReflectionRow): Reflection {
   return {
     id: row.id,
+    agentId: row.agent_id,
     goalId: row.goal_id,
     attemptId: row.attempt_id,
     summary: row.summary,
@@ -28,15 +31,17 @@ function rowToReflection(row: ReflectionRow): Reflection {
 export class ReflectionRepo {
   constructor(private db: Database.Database) {}
 
-  create(reflection: Reflection): void {
+  create(reflection: Omit<Reflection, 'agentId'> & { agentId?: string }): void {
+    const agentId = reflection.agentId ?? DEFAULT_AGENT_ID;
     this.db
       .prepare(
         `INSERT INTO reflections
-           (id, goal_id, attempt_id, summary, root_cause, must_change, avoid_strategy, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+           (id, agent_id, goal_id, attempt_id, summary, root_cause, must_change, avoid_strategy, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         reflection.id,
+        agentId,
         reflection.goalId,
         reflection.attemptId,
         reflection.summary,
@@ -47,26 +52,38 @@ export class ReflectionRepo {
       );
   }
 
-  getByAttemptId(attemptId: string): Reflection | null {
+  getByAttemptId(attemptId: string): Reflection | null;
+  getByAttemptId(agentId: string, attemptId: string): Reflection | null;
+  getByAttemptId(first: string, second?: string): Reflection | null {
+    const agentId = second ? first : DEFAULT_AGENT_ID;
+    const attemptId = second ?? first;
     const row = this.db
-      .prepare(`SELECT * FROM reflections WHERE attempt_id = ?`)
-      .get(attemptId) as ReflectionRow | undefined;
+      .prepare(`SELECT * FROM reflections WHERE agent_id = ? AND attempt_id = ?`)
+      .get(agentId, attemptId) as ReflectionRow | undefined;
     return row ? rowToReflection(row) : null;
   }
 
-  listByGoal(goalId: string): Reflection[] {
+  listByGoal(goalId: string): Reflection[];
+  listByGoal(agentId: string, goalId: string): Reflection[];
+  listByGoal(first: string, second?: string): Reflection[] {
+    const agentId = second ? first : DEFAULT_AGENT_ID;
+    const goalId = second ?? first;
     const rows = this.db
-      .prepare(`SELECT * FROM reflections WHERE goal_id = ? ORDER BY created_at ASC`)
-      .all(goalId) as ReflectionRow[];
+      .prepare(`SELECT * FROM reflections WHERE agent_id = ? AND goal_id = ? ORDER BY created_at ASC`)
+      .all(agentId, goalId) as ReflectionRow[];
     return rows.map(rowToReflection);
   }
 
-  getLatest(goalId: string): Reflection | null {
+  getLatest(goalId: string): Reflection | null;
+  getLatest(agentId: string, goalId: string): Reflection | null;
+  getLatest(first: string, second?: string): Reflection | null {
+    const agentId = second ? first : DEFAULT_AGENT_ID;
+    const goalId = second ?? first;
     const row = this.db
       .prepare(
-        `SELECT * FROM reflections WHERE goal_id = ? ORDER BY created_at DESC LIMIT 1`
+        `SELECT * FROM reflections WHERE agent_id = ? AND goal_id = ? ORDER BY created_at DESC LIMIT 1`
       )
-      .get(goalId) as ReflectionRow | undefined;
+      .get(agentId, goalId) as ReflectionRow | undefined;
     return row ? rowToReflection(row) : null;
   }
 }

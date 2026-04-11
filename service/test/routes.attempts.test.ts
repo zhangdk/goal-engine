@@ -154,4 +154,42 @@ describe('GET /api/v1/attempts', () => {
     const body = await res.json() as { data: unknown[] };
     expect(body.data).toHaveLength(1);
   });
+
+  it('does not list another agent attempt history for the same goal id', async () => {
+    const db = makeTestDb();
+    const localApp = createApp(db);
+
+    const goalRes = await localApp.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        title: 'Agent A Goal',
+        success_criteria: ['A succeeds'],
+        stop_conditions: [],
+        current_stage: 'research',
+      }),
+    });
+    const agentAGoalId = ((await goalRes.json()) as { data: { id: string } }).data.id;
+
+    await localApp.request('/api/v1/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: agentAGoalId,
+        stage: 'research',
+        action_taken: 'Agent A private attempt',
+        strategy_tags: ['private-path'],
+        result: 'failure',
+        failure_type: 'tool_error',
+      }),
+    });
+
+    const res = await localApp.request(`/api/v1/attempts?goal_id=${agentAGoalId}`, {
+      headers: { 'X-Agent-Id': 'agent-b' },
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('not_found');
+  });
 });

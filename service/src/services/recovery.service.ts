@@ -21,6 +21,7 @@ import type { RecoveryPacket } from '../../../shared/types.js';
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { PolicyRepo } from '../repos/policy.repo.js';
+import { DEFAULT_AGENT_ID } from '../agent-context.js';
 
 export class RecoveryService {
   constructor(
@@ -33,15 +34,20 @@ export class RecoveryService {
    * 从事实源派生 RecoveryPacket。
    * 若 goal 不存在则返回 null。
    */
-  build(goalId: string): RecoveryPacket | null {
-    const goal = this.goalRepo.getById(goalId);
+  build(goalId: string): RecoveryPacket | null;
+  build(agentId: string, goalId: string): RecoveryPacket | null;
+  build(first: string, second?: string): RecoveryPacket | null {
+    const agentId = second ? first : DEFAULT_AGENT_ID;
+    const goalId = second ?? first;
+    const goal = this.goalRepo.getById(agentId, goalId);
     if (!goal) return null;
 
-    const policy = this.policyRepo.getByGoal(goalId);
-    const latestProgress = this.attemptRepo.getLatestMeaningfulProgress(goalId);
-    const latestFailure = this.attemptRepo.getLatestFailure(goalId);
+    const policy = this.policyRepo.getByGoal(agentId, goalId);
+    const latestProgress = this.attemptRepo.getLatestMeaningfulProgress(agentId, goalId);
+    const latestFailure = this.attemptRepo.getLatestFailure(agentId, goalId);
 
     return {
+      agentId,
       goalId: goal.id,
       goalTitle: goal.title,
       currentStage: goal.currentStage,

@@ -72,6 +72,40 @@ describe('GoalRepo', () => {
     ).toThrow();
   });
 
+  it('allows one active goal per agent and scopes direct lookup by agent', () => {
+    const agentAGoalId = testId('goal');
+    const agentBGoalId = testId('goal');
+    goalRepo.create({
+      id: agentAGoalId,
+      agentId: 'agent-a',
+      title: 'Agent A Goal',
+      status: 'active',
+      successCriteria: [],
+      stopConditions: [],
+      priority: 1,
+      currentStage: 'init',
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+
+    expect(() => goalRepo.create({
+      id: agentBGoalId,
+      agentId: 'agent-b',
+      title: 'Agent B Goal',
+      status: 'active',
+      successCriteria: [],
+      stopConditions: [],
+      priority: 1,
+      currentStage: 'init',
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    })).not.toThrow();
+
+    expect(goalRepo.getCurrent('agent-a')?.id).toBe(agentAGoalId);
+    expect(goalRepo.getCurrent('agent-b')?.id).toBe(agentBGoalId);
+    expect(goalRepo.getById('agent-b', agentAGoalId)).toBeNull();
+  });
+
   it('allows creating a new active goal after completing the previous one', () => {
     const id = testId('goal');
     goalRepo.create({
@@ -161,6 +195,25 @@ describe('AttemptRepo', () => {
     expect(list).toHaveLength(1);
     expect(list[0].id).toBe(id);
     expect(list[0].strategyTags).toEqual(['broad-web-search']);
+  });
+
+  it('does not list another agent attempt history', () => {
+    const id = testId('attempt');
+    attemptRepo.create({
+      id,
+      agentId: 'goal-engine-demo',
+      goalId,
+      stage: 'research',
+      actionTaken: '搜索文档',
+      strategyTags: ['private-path'],
+      result: 'failure',
+      failureType: 'tool_error',
+      createdAt: nowIso(),
+    });
+
+    expect(attemptRepo.listByGoal('goal-engine-demo', goalId)).toHaveLength(1);
+    expect(attemptRepo.listByGoal('agent-b', goalId)).toEqual([]);
+    expect(attemptRepo.getById('agent-b', id)).toBeNull();
   });
 
   it('rejects failure attempt without failure_type', () => {

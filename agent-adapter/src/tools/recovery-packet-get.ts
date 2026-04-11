@@ -2,6 +2,7 @@ import type { AdapterClient } from '../client.js';
 import type { RecoveryPacket } from '../../../shared/types.js';
 
 type RecoverySnake = {
+  agent_id?: string;
   goal_id: string;
   goal_title: string;
   current_stage: string;
@@ -15,6 +16,7 @@ type RecoverySnake = {
 
 function toCamel(raw: RecoverySnake): RecoveryPacket {
   return {
+    agentId: raw.agent_id ?? 'goal-engine-demo',
     goalId: raw.goal_id,
     goalTitle: raw.goal_title,
     currentStage: raw.current_stage,

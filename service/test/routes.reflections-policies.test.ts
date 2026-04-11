@@ -114,6 +114,52 @@ describe('POST /api/v1/reflections', () => {
     expect(body.error.code).toBe('not_found');
   });
 
+  it('does not create a reflection for another agent attempt', async () => {
+    const db = makeTestDb();
+    const localApp = createApp(db);
+
+    const goalRes = await localApp.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        title: 'Agent A Goal',
+        success_criteria: ['A succeeds'],
+        current_stage: 'research',
+      }),
+    });
+    const agentAGoalId = ((await goalRes.json()) as { data: { id: string } }).data.id;
+
+    const attemptRes = await localApp.request('/api/v1/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: agentAGoalId,
+        stage: 'research',
+        action_taken: 'Agent A failed privately',
+        strategy_tags: ['private-path'],
+        result: 'failure',
+        failure_type: 'tool_error',
+      }),
+    });
+    const agentAAttemptId = ((await attemptRes.json()) as { data: { id: string } }).data.id;
+
+    const res = await localApp.request('/api/v1/reflections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-b' },
+      body: JSON.stringify({
+        goal_id: agentAGoalId,
+        attempt_id: agentAAttemptId,
+        summary: 'Should not be allowed',
+        root_cause: 'Cross-agent read',
+        must_change: 'Reject cross-agent writes',
+      }),
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('not_found');
+  });
+
   it('returns 422 when attempt goal does not match', async () => {
     // Create a second goal (need to complete first one)
     await app.request(`/api/v1/goals/${goalId}`, {
@@ -218,5 +264,56 @@ describe('GET /api/v1/policies/current', () => {
     expect(res.status).toBe(200);
     const body = await res.json() as { data: { avoid_strategies: string[] } };
     expect(body.data.avoid_strategies).toContain('broad-web-search');
+  });
+
+  it('does not return another agent policy for the same goal id', async () => {
+    const db = makeTestDb();
+    const localApp = createApp(db);
+
+    const goalRes = await localApp.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        title: 'Agent A Goal',
+        success_criteria: ['A succeeds'],
+        current_stage: 'research',
+      }),
+    });
+    const agentAGoalId = ((await goalRes.json()) as { data: { id: string } }).data.id;
+
+    const attemptRes = await localApp.request('/api/v1/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: agentAGoalId,
+        stage: 'research',
+        action_taken: 'Agent A failed privately',
+        strategy_tags: ['private-path'],
+        result: 'failure',
+        failure_type: 'tool_error',
+      }),
+    });
+    const agentAAttemptId = ((await attemptRes.json()) as { data: { id: string } }).data.id;
+
+    await localApp.request('/api/v1/reflections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: agentAGoalId,
+        attempt_id: agentAAttemptId,
+        summary: '摘要',
+        root_cause: '原因',
+        must_change: '改变',
+        avoid_strategy: 'broad-web-search',
+      }),
+    });
+
+    const res = await localApp.request(`/api/v1/policies/current?goal_id=${agentAGoalId}`, {
+      headers: { 'X-Agent-Id': 'agent-b' },
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('not_found');
   });
 });

@@ -3,6 +3,7 @@ import type { Goal } from '../../../shared/types.js';
 
 type GoalSnake = {
   id: string;
+  agent_id?: string;
   title: string;
   status: string;
   success_criteria: string[];
@@ -16,6 +17,7 @@ type GoalSnake = {
 function toCamel(raw: GoalSnake): Goal {
   return {
     id: raw.id,
+    agentId: raw.agent_id ?? 'goal-engine-demo',
     title: raw.title,
     status: raw.status as Goal['status'],
     successCriteria: raw.success_criteria,

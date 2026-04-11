@@ -14,6 +14,7 @@ type AttemptInput = {
 
 type AttemptSnake = {
   id: string;
+  agent_id?: string;
   goal_id: string;
   stage: string;
   action_taken: string;
@@ -28,6 +29,7 @@ type AttemptSnake = {
 function toCamel(raw: AttemptSnake): Attempt {
   return {
     id: raw.id,
+    agentId: raw.agent_id ?? 'goal-engine-demo',
     goalId: raw.goal_id,
     stage: raw.stage,
     actionTaken: raw.action_taken,

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { PolicyService } from '../services/policy.service.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
+import { resolveAgentContext } from '../agent-context.js';
 
 const createReflectionSchema = z.object({
   goal_id: z.string().min(1),
@@ -26,11 +27,12 @@ export function reflectionsRouter(
       return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
     }
   }), (c) => {
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
     const data = c.req.valid('json');
     const now = new Date().toISOString();
 
     // Validate attempt exists and matches goal
-    const attempt = attemptRepo.getById(data.attempt_id);
+    const attempt = attemptRepo.getById(agentId, data.attempt_id);
     if (!attempt) {
       return c.json({ error: { code: 'not_found', message: 'Attempt not found' } }, 404);
     }
@@ -43,6 +45,7 @@ export function reflectionsRouter(
 
     try {
       const result = policyService.writeReflectionAndUpdatePolicy({
+        agentId,
         goalId: data.goal_id,
         attemptId: data.attempt_id,
         summary: data.summary,
@@ -52,7 +55,7 @@ export function reflectionsRouter(
         createdAt: now,
       });
 
-      goalAgentHistoryService.touchGoal(data.goal_id, 'reflection_recorded', now);
+      goalAgentHistoryService.touchGoal(data.goal_id, 'reflection_recorded', now, agentId);
 
       return c.json({
         data: {
@@ -74,6 +77,7 @@ export function reflectionsRouter(
 
 function reflectionToSnakeCase(r: {
   id: string;
+  agentId: string;
   goalId: string;
   attemptId: string;
   summary: string;
@@ -84,6 +88,7 @@ function reflectionToSnakeCase(r: {
 }) {
   return {
     id: r.id,
+    agent_id: r.agentId,
     goal_id: r.goalId,
     attempt_id: r.attemptId,
     summary: r.summary,
@@ -96,6 +101,7 @@ function reflectionToSnakeCase(r: {
 
 function policyToSnakeCase(p: {
   id: string;
+  agentId: string;
   goalId: string;
   preferredNextStep?: string;
   avoidStrategies: string[];
@@ -104,6 +110,7 @@ function policyToSnakeCase(p: {
 }) {
   return {
     id: p.id,
+    agent_id: p.agentId,
     goal_id: p.goalId,
     preferred_next_step: p.preferredNextStep,
     avoid_strategies: p.avoidStrategies,

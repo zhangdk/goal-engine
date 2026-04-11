@@ -109,6 +109,7 @@ describe('parseOpenClawCliArgs', () => {
 describe('runOpenClawCli', () => {
   it('runs bootstrap and writes runtime-state from explicit runtime context', async () => {
     const output: string[] = [];
+    const createClient = vi.fn(() => ({}) as never);
     const stateDir = createTempDir('goal-engine-openclaw-cli-');
     const workspaceStatePath = join(stateDir, 'workspace-state.json');
     const runtimeStatePath = join(stateDir, 'runtime-state.json');
@@ -143,7 +144,7 @@ describe('runOpenClawCli', () => {
       '--session',
       'main',
     ], {
-      createClient: () => ({}) as never,
+      createClient,
       bootstrapSession: vi.fn().mockResolvedValue({
         action: 'show goal status',
         summary: 'Bootstrapped from projection',
@@ -156,6 +157,7 @@ describe('runOpenClawCli', () => {
 
     expect(output.join('')).toContain('"action": "show goal status"');
     expect(output.join('')).toContain('Bootstrapped from projection');
+    expect(createClient).toHaveBeenCalledWith('http://localhost:3100', 'goal-engine-demo');
     expect(existsSync(runtimeStatePath)).toBe(true);
     expect(JSON.parse(readFileSync(runtimeStatePath, 'utf-8'))).toEqual({
       goalEngine: {
@@ -319,6 +321,48 @@ describe('runOpenClawCli', () => {
 
     expect(output.join('')).toContain('"entrypoint": "check retry"');
     expect(output.join('')).toContain('Retry check: allowed.');
+  });
+
+  it('uses the current runtime-state agent id when runtime args are omitted', async () => {
+    const stateDir = createTempDir('goal-engine-openclaw-cli-');
+    const runtimeStatePath = join(stateDir, 'runtime-state.json');
+    writeFileSync(runtimeStatePath, JSON.stringify({
+      goalEngine: {
+        currentManagedAgentId: 'goal-engine-research',
+        managedAgents: [
+          {
+            agentId: 'goal-engine-research',
+            agentName: 'goal-engine-research',
+            workspace: 'goal-engine',
+            session: 'research',
+            managed: true,
+          },
+        ],
+        goalAlignmentSnapshots: {},
+        externalToolGuards: {},
+        runtimeEvents: {},
+      },
+    }), 'utf-8');
+    const createClient = vi.fn(() => ({}) as never);
+
+    await runOpenClawCli([
+      'entrypoint',
+      'check retry',
+      '--runtime-state',
+      runtimeStatePath,
+      '--payload',
+      '{"plannedAction":"Try again","whatChanged":"Changed","strategyTags":["official-docs"],"policyAcknowledged":true}',
+    ], {
+      createClient,
+      bootstrapSession: vi.fn(),
+      dispatchEntrypoint: vi.fn().mockResolvedValue({
+        entrypoint: 'check retry',
+        summary: 'Retry check: allowed.',
+      }),
+      writeStdout: vi.fn(),
+    });
+
+    expect(createClient).toHaveBeenCalledWith('http://localhost:3100', 'goal-engine-research');
   });
 });
 

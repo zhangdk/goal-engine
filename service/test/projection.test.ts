@@ -26,6 +26,7 @@ describe('Projection consistency (test-strategy 8.x)', () => {
   it('8.1 — projection reflects updated policy after policy change', () => {
     const input1: ProjectionInput = {
       recoveryPacket: {
+        agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         goalTitle: '目标',
         currentStage: 'research',
@@ -38,6 +39,7 @@ describe('Projection consistency (test-strategy 8.x)', () => {
       },
       policy: {
         id: 'pol_1',
+        agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         preferredNextStep: '用官方文档',
         avoidStrategies: ['broad-web-search'],
@@ -76,6 +78,7 @@ describe('Projection consistency (test-strategy 8.x)', () => {
   it('8.2 — new session can rebuild projection from recovery_packet + policy', () => {
     const input: ProjectionInput = {
       recoveryPacket: {
+        agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         goalTitle: '编写供应商对比',
         currentStage: 'research',
@@ -88,6 +91,7 @@ describe('Projection consistency (test-strategy 8.x)', () => {
       },
       policy: {
         id: 'pol_1',
+        agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         preferredNextStep: '只比较 3 个官方文档',
         avoidStrategies: ['broad-web-search'],
@@ -119,6 +123,7 @@ describe('Projection consistency (test-strategy 8.x)', () => {
   it('8.3 — projection never stores full history', () => {
     const input: ProjectionInput = {
       recoveryPacket: {
+        agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         goalTitle: '目标',
         currentStage: 'init',
@@ -131,6 +136,7 @@ describe('Projection consistency (test-strategy 8.x)', () => {
       },
       policy: {
         id: 'pol_1',
+        agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         preferredNextStep: '下一步',
         avoidStrategies: ['策略A'],

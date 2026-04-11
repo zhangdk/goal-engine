@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { GoalAgentAssignmentRepo } from '../repos/goal-agent-assignment.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
+import { resolveAgentContext } from '../agent-context.js';
 
 const createGoalSchema = z.object({
   title: z.string().min(1),
@@ -31,10 +32,11 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
       return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
     }
   }), (c) => {
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
     const data = c.req.valid('json');
     const now = new Date().toISOString();
     const id = randomUUID();
-    const existingActiveGoal = goalRepo.getCurrent();
+    const existingActiveGoal = goalRepo.getCurrent(agentId);
 
     if (existingActiveGoal && !data.replace_active) {
       return c.json({
@@ -52,7 +54,7 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
     }
 
     if (existingActiveGoal && data.replace_active) {
-      goalRepo.patch(existingActiveGoal.id, {
+      goalRepo.patch(agentId, existingActiveGoal.id, {
         status: 'abandoned',
         updatedAt: now,
       });
@@ -61,6 +63,7 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
     try {
       goalRepo.create({
         id,
+        agentId,
         title: data.title,
         status: 'active',
         successCriteria: data.success_criteria,
@@ -73,7 +76,7 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('UNIQUE') || msg.includes('unique')) {
-        const activeGoal = goalRepo.getCurrent();
+        const activeGoal = goalRepo.getCurrent(agentId);
         return c.json({
           error: {
             code: 'state_conflict',
@@ -94,8 +97,8 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
       return c.json({ error: { code: 'internal_error', message: msg } }, 500);
     }
 
-    const goal = goalRepo.getById(id)!;
-    goalAgentHistoryService.recordGoalStart(goal.id, goal.createdAt);
+    const goal = goalRepo.getById(agentId, id)!;
+    goalAgentHistoryService.recordGoalStart(goal.id, goal.createdAt, agentId);
     return c.json({
       data: {
         ...toSnakeCase(goal),
@@ -113,7 +116,8 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
   });
 
   router.get('/current', (c) => {
-    const goal = goalRepo.getCurrent();
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
+    const goal = goalRepo.getCurrent(agentId);
     if (!goal) {
       return c.json({ error: { code: 'no_active_goal', message: 'No active goal found' } }, 404);
     }
@@ -126,15 +130,16 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
     }
   }), (c) => {
     const goalId = c.req.param('goalId');
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
     const data = c.req.valid('json');
     const now = new Date().toISOString();
 
-    const existing = goalRepo.getById(goalId);
+    const existing = goalRepo.getById(agentId, goalId);
     if (!existing) {
       return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
     }
 
-    goalRepo.patch(goalId, {
+    goalRepo.patch(agentId, goalId, {
       status: data.status,
       currentStage: data.current_stage,
       priority: data.priority,
@@ -143,13 +148,14 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
       updatedAt: now,
     });
 
-    const updated = goalRepo.getById(goalId)!;
+    const updated = goalRepo.getById(agentId, goalId)!;
     return c.json({ data: toSnakeCase(updated) });
   });
 
   router.get('/:goalId/agents', (c) => {
     const goalId = c.req.param('goalId');
-    const goal = goalRepo.getById(goalId);
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
+    const goal = goalRepo.getById(agentId, goalId);
     if (!goal) {
       return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
     }
@@ -177,6 +183,7 @@ export function goalsRouter(goalRepo: GoalRepo, goalAgentAssignmentRepo: GoalAge
 
 function toSnakeCase(goal: {
   id: string;
+  agentId: string;
   title: string;
   status: string;
   successCriteria: string[];
@@ -188,6 +195,7 @@ function toSnakeCase(goal: {
 }) {
   return {
     id: goal.id,
+    agent_id: goal.agentId,
     title: goal.title,
     status: goal.status,
     success_criteria: goal.successCriteria,

@@ -49,9 +49,9 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
 
   // Routes under /api/v1
   app.route('/api/v1/goals', goalsRouter(goalRepo, goalAgentAssignmentRepo, goalAgentHistoryService));
-  app.route('/api/v1/attempts', attemptsRouter(attemptRepo, goalAgentHistoryService));
+  app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/reflections', reflectionsRouter(policyService, attemptRepo, goalAgentHistoryService));
-  app.route('/api/v1/policies', policiesRouter(policyRepo));
+  app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
   app.route('/api/v1/retry-guard', retryGuardRouter(goalRepo, policyRepo, attemptRepo, retryHistoryRepo, goalAgentHistoryService));
   app.route('/api/v1/recovery-packet', recoveryRouter(recoveryService, recoveryEventRepo, goalAgentHistoryService));
   app.route('/api/v1/health', healthRouter());

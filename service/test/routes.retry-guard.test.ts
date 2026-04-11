@@ -88,6 +88,24 @@ describe('POST /api/v1/retry-guard/check', () => {
     expect(body.data.allowed).toBe(true);
   });
 
+  it('does not check retry policy for another agent goal', async () => {
+    const res = await app.request('/api/v1/retry-guard/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-b' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        planned_action: 'Try to read Agent A policy',
+        what_changed: 'new search path',
+        strategy_tags: ['official-docs'],
+        policy_acknowledged: true,
+      }),
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('not_found');
+  });
+
   it('persists retry-check history for later timeline evidence', async () => {
     const res = await app.request('/api/v1/retry-guard/check', {
       method: 'POST',

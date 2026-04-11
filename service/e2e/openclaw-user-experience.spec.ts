@@ -170,6 +170,7 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
 
       const goalTitle = `Runtime-selected managed agent ${Date.now()}`;
       const goalRes = await request.post('/api/v1/goals', {
+        headers: { 'X-Agent-Id': 'goal-engine-research' },
         data: {
           title: goalTitle,
           success_criteria: ['Attach active goal to runtime-selected agent'],
@@ -241,6 +242,7 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
       });
 
       const firstGoalRes = await request.post('/api/v1/goals', {
+        headers: { 'X-Agent-Id': 'goal-engine-demo' },
         data: {
           title: `Existing goal ${Date.now()}`,
           success_criteria: ['Trigger an active-goal conflict'],
@@ -253,6 +255,7 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
 
       const replacementTitle = `Replacement goal ${Date.now()}`;
       const replacementGoalRes = await request.post('/api/v1/goals', {
+        headers: { 'X-Agent-Id': 'goal-engine-demo' },
         data: {
           title: replacementTitle,
           success_criteria: ['Replace the current goal explicitly'],

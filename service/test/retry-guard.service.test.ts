@@ -8,6 +8,7 @@ const guardService = new RetryGuardService();
 function makeAttempt(strategyTags: string[]): Attempt {
   return {
     id: 'attempt_1',
+    agentId: 'goal-engine-demo',
     goalId: 'goal_1',
     stage: 'research',
     actionTaken: '搜索',
@@ -22,6 +23,7 @@ function makeAttempt(strategyTags: string[]): Attempt {
 function makePolicy(avoidStrategies: string[]): Policy {
   return {
     id: 'policy_1',
+    agentId: 'goal-engine-demo',
     goalId: 'goal_1',
     avoidStrategies,
     mustCheckBeforeRetry: ['确认路径不同'],

@@ -6,6 +6,7 @@ import type { ReflectionRepo } from '../repos/reflection.repo.js';
 import type { PolicyRepo } from '../repos/policy.repo.js';
 import type { RecoveryService } from '../services/recovery.service.js';
 import { currentMvpIntent, originalIntent, type RequirementCard } from './requirements.js';
+import { DEFAULT_AGENT_ID } from '../agent-context.js';
 
 export type AuditStatus = 'covered' | 'partial' | 'missing';
 
@@ -84,11 +85,11 @@ const projectionFiles = ['current-goal.md', 'current-policy.md', 'recovery-packe
 
 export function buildObservabilityView(deps: ObservabilityDependencies): ObservabilityView {
   const projectionDir = deps.projectionDir ?? defaultProjectionDir;
-  const activeGoal = deps.goalRepo.getCurrent();
-  const currentGuidance = activeGoal ? deps.policyRepo.getByGoal(activeGoal.id) : null;
-  const latestFailure = activeGoal ? deps.attemptRepo.getLatestFailure(activeGoal.id) : null;
-  const latestReflection = activeGoal ? deps.reflectionRepo.getLatest(activeGoal.id) : null;
-  const currentRecovery = activeGoal ? deps.recoveryService.build(activeGoal.id) : null;
+  const activeGoal = deps.goalRepo.getCurrent(DEFAULT_AGENT_ID);
+  const currentGuidance = activeGoal ? deps.policyRepo.getByGoal(DEFAULT_AGENT_ID, activeGoal.id) : null;
+  const latestFailure = activeGoal ? deps.attemptRepo.getLatestFailure(DEFAULT_AGENT_ID, activeGoal.id) : null;
+  const latestReflection = activeGoal ? deps.reflectionRepo.getLatest(DEFAULT_AGENT_ID, activeGoal.id) : null;
+  const currentRecovery = activeGoal ? deps.recoveryService.build(DEFAULT_AGENT_ID, activeGoal.id) : null;
   const projectionReady = projectionFiles.every((filename) => existsSync(join(projectionDir, filename)));
 
   return {

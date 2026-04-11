@@ -19,6 +19,7 @@ describe('recovery source in timeline', () => {
       recoveryEvents: [
         {
           id: 'rec-1',
+          agentId: 'goal-engine-demo',
           goalId: 'g-1',
           goalTitle: '测试目标',
           currentStage: 'research',
@@ -43,6 +44,7 @@ describe('recovery source in timeline', () => {
       recoveryEvents: [
         {
           id: 'rec-2',
+          agentId: 'goal-engine-demo',
           goalId: 'g-1',
           goalTitle: '测试目标',
           currentStage: 'execution',
@@ -66,6 +68,7 @@ describe('recovery source in timeline', () => {
       recoveryEvents: [
         {
           id: 'rec-service',
+          agentId: 'goal-engine-demo',
           goalId: 'g-1',
           goalTitle: '目标A',
           currentStage: 'research',
@@ -75,6 +78,7 @@ describe('recovery source in timeline', () => {
         },
         {
           id: 'rec-projection',
+          agentId: 'goal-engine-demo',
           goalId: 'g-1',
           goalTitle: '目标A',
           currentStage: 'research',

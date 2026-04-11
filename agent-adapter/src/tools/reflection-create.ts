@@ -17,6 +17,7 @@ export type ReflectionCreateResult = {
 
 type ReflectionSnake = {
   id: string;
+  agent_id?: string;
   goal_id: string;
   attempt_id: string;
   summary: string;
@@ -28,6 +29,7 @@ type ReflectionSnake = {
 
 type PolicySnake = {
   id: string;
+  agent_id?: string;
   goal_id: string;
   preferred_next_step?: string;
   avoid_strategies: string[];
@@ -38,6 +40,7 @@ type PolicySnake = {
 function reflectionToCamel(raw: ReflectionSnake): Reflection {
   return {
     id: raw.id,
+    agentId: raw.agent_id ?? 'goal-engine-demo',
     goalId: raw.goal_id,
     attemptId: raw.attempt_id,
     summary: raw.summary,
@@ -51,6 +54,7 @@ function reflectionToCamel(raw: ReflectionSnake): Reflection {
 function policyToCamel(raw: PolicySnake): Policy {
   return {
     id: raw.id,
+    agentId: raw.agent_id ?? 'goal-engine-demo',
     goalId: raw.goal_id,
     preferredNextStep: raw.preferred_next_step,
     avoidStrategies: raw.avoid_strategies,

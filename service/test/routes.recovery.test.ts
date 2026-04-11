@@ -51,6 +51,28 @@ describe('GET /api/v1/recovery-packet', () => {
     expect(body.data.generated_at).toBeDefined();
   });
 
+  it('does not recover another agent goal by id', async () => {
+    const goalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        title: 'Agent A Recovery Goal',
+        success_criteria: ['A succeeds'],
+        stop_conditions: [],
+        current_stage: 'research',
+      }),
+    });
+    const agentAGoalId = ((await goalRes.json()) as { data: { id: string } }).data.id;
+
+    const res = await app.request(`/api/v1/recovery-packet?goal_id=${agentAGoalId}`, {
+      headers: { 'X-Agent-Id': 'agent-b' },
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('not_found');
+  });
+
   it('persists recovery events for later UI evidence', async () => {
     const goalRes = await app.request('/api/v1/goals', {
       method: 'POST',

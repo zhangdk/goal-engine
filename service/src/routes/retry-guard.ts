@@ -8,6 +8,7 @@ import type { PolicyRepo } from '../repos/policy.repo.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { RetryHistoryRepo } from '../repos/retry-history.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
+import { resolveAgentContext } from '../agent-context.js';
 
 const checkSchema = z.object({
   goal_id: z.string().min(1),
@@ -32,14 +33,15 @@ export function retryGuardRouter(
       return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
     }
   }), (c) => {
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
     const data = c.req.valid('json');
 
-    const goal = goalRepo.getById(data.goal_id);
+    const goal = goalRepo.getById(agentId, data.goal_id);
     if (!goal) {
       return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
     }
 
-    const policy = policyRepo.getByGoal(data.goal_id);
+    const policy = policyRepo.getByGoal(agentId, data.goal_id);
     if (!policy) {
       return c.json({
         error: {
@@ -49,7 +51,7 @@ export function retryGuardRouter(
       }, 404);
     }
 
-    const latestFailure = attemptRepo.getLatestFailure(data.goal_id);
+    const latestFailure = attemptRepo.getLatestFailure(agentId, data.goal_id);
 
     const result = guardService.check({
       policyAcknowledged: data.policy_acknowledged,
@@ -61,6 +63,7 @@ export function retryGuardRouter(
 
     retryHistoryRepo.create({
       id: randomUUID(),
+      agentId,
       goalId: data.goal_id,
       plannedAction: data.planned_action,
       whatChanged: data.what_changed,
@@ -72,7 +75,7 @@ export function retryGuardRouter(
       tagOverlapRate: result.tagOverlapRate,
       createdAt: new Date().toISOString(),
     });
-    goalAgentHistoryService.touchGoal(data.goal_id, 'retry_checked');
+    goalAgentHistoryService.touchGoal(data.goal_id, 'retry_checked', undefined, agentId);
 
     return c.json({
       data: {

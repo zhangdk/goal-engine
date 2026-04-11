@@ -1,8 +1,10 @@
 import Database from 'better-sqlite3';
 import type { RetryCheckEvent, RetryGuardReason } from '../../../shared/types.js';
+import { DEFAULT_AGENT_ID } from '../agent-context.js';
 
 type RetryCheckEventRow = {
   id: string;
+  agent_id: string;
   goal_id: string;
   planned_action: string;
   what_changed: string;
@@ -18,6 +20,7 @@ type RetryCheckEventRow = {
 function rowToRetryCheckEvent(row: RetryCheckEventRow): RetryCheckEvent {
   return {
     id: row.id,
+    agentId: row.agent_id,
     goalId: row.goal_id,
     plannedAction: row.planned_action,
     whatChanged: row.what_changed,
@@ -34,13 +37,15 @@ function rowToRetryCheckEvent(row: RetryCheckEventRow): RetryCheckEvent {
 export class RetryHistoryRepo {
   constructor(private db: Database.Database) {}
 
-  create(event: RetryCheckEvent): void {
+  create(event: Omit<RetryCheckEvent, 'agentId'> & { agentId?: string }): void {
+    const agentId = event.agentId ?? DEFAULT_AGENT_ID;
     this.db.prepare(
       `INSERT INTO retry_check_events
-         (id, goal_id, planned_action, what_changed, strategy_tags, policy_acknowledged, allowed, reason, warnings, tag_overlap_rate, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (id, agent_id, goal_id, planned_action, what_changed, strategy_tags, policy_acknowledged, allowed, reason, warnings, tag_overlap_rate, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       event.id,
+      agentId,
       event.goalId,
       event.plannedAction,
       event.whatChanged,
@@ -54,13 +59,18 @@ export class RetryHistoryRepo {
     );
   }
 
-  listByGoal(goalId: string, limit = 20): RetryCheckEvent[] {
+  listByGoal(goalId: string, limit?: number): RetryCheckEvent[];
+  listByGoal(agentId: string, goalId: string, limit?: number): RetryCheckEvent[];
+  listByGoal(first: string, second?: string | number, third = 20): RetryCheckEvent[] {
+    const agentId = typeof second === 'string' ? first : DEFAULT_AGENT_ID;
+    const goalId = typeof second === 'string' ? second : first;
+    const limit = typeof second === 'number' ? second : third;
     const rows = this.db.prepare(
       `SELECT * FROM retry_check_events
-       WHERE goal_id = ?
+       WHERE agent_id = ? AND goal_id = ?
        ORDER BY created_at DESC
        LIMIT ?`
-    ).all(goalId, Math.min(limit, 100)) as RetryCheckEventRow[];
+    ).all(agentId, goalId, Math.min(limit, 100)) as RetryCheckEventRow[];
 
     return rows.map(rowToRetryCheckEvent);
   }
