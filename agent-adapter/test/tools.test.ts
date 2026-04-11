@@ -290,6 +290,34 @@ describe('recoveryPacketGet', () => {
         success_criteria: ['条件A'],
         avoid_strategies: ['broad-web-search'],
         preferred_next_step: '切换到官方文档',
+        current_policy: {
+          preferred_next_step: '切换到官方文档',
+          must_check_before_retry: ['确认不同路径'],
+        },
+        recent_attempts: [
+          {
+            id: 'attempt_1',
+            stage: 'research',
+            action_taken: '搜索失败',
+            result: 'failure',
+            failure_type: 'tool_error',
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        relevant_knowledge: [
+          {
+            id: 'know_1',
+            goal_id: 'goal_1',
+            context: 'research',
+            observation: 'Aggregator was stale.',
+            hypothesis: 'Index lag.',
+            implication: 'Check official pages.',
+            related_strategy_tags: ['broad-web-search'],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        shared_wisdom: [],
+        open_questions: ['Which source is authoritative?'],
         generated_at: '2026-01-01T00:00:00.000Z',
       },
     });
@@ -300,6 +328,10 @@ describe('recoveryPacketGet', () => {
     expect(packet.goalId).toBe('goal_1');
     expect(packet.goalTitle).toBe('目标');
     expect(packet.generatedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(packet.currentPolicy?.mustCheckBeforeRetry).toEqual(['确认不同路径']);
+    expect(packet.recentAttempts[0].actionTaken).toBe('搜索失败');
+    expect(packet.relevantKnowledge[0].implication).toBe('Check official pages.');
+    expect(packet.openQuestions).toEqual(['Which source is authoritative?']);
     expect((packet as Record<string, unknown>)['generated_at']).toBeUndefined();
   });
 
