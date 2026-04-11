@@ -7,9 +7,13 @@ import { PolicyRepo } from './repos/policy.repo.js';
 import { RetryHistoryRepo } from './repos/retry-history.repo.js';
 import { RecoveryEventRepo } from './repos/recovery-event.repo.js';
 import { GoalAgentAssignmentRepo } from './repos/goal-agent-assignment.repo.js';
+import { KnowledgeRepo } from './repos/knowledge.repo.js';
+import { KnowledgePromotionRepo } from './repos/knowledge-promotion.repo.js';
+import { KnowledgeReferenceEventRepo } from './repos/knowledge-reference-event.repo.js';
 import { PolicyService } from './services/policy.service.js';
 import { RecoveryService } from './services/recovery.service.js';
 import { GoalAgentHistoryService } from './services/goal-agent-history.service.js';
+import { KnowledgeService } from './services/knowledge.service.js';
 import { goalsRouter } from './routes/goals.js';
 import { attemptsRouter } from './routes/attempts.js';
 import { reflectionsRouter } from './routes/reflections.js';
@@ -38,9 +42,13 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   const retryHistoryRepo = new RetryHistoryRepo(db);
   const recoveryEventRepo = new RecoveryEventRepo(db);
   const goalAgentAssignmentRepo = new GoalAgentAssignmentRepo(db);
+  const knowledgeRepo = new KnowledgeRepo(db);
+  const knowledgePromotionRepo = new KnowledgePromotionRepo(db);
+  const _knowledgeReferenceEventRepo = new KnowledgeReferenceEventRepo(db);
 
   // Services
-  const policyService = new PolicyService(db, goalRepo, attemptRepo, reflectionRepo, policyRepo);
+  const knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
+  const policyService = new PolicyService(db, goalRepo, attemptRepo, reflectionRepo, policyRepo, knowledgeService);
   const recoveryService = new RecoveryService(goalRepo, attemptRepo, policyRepo);
   const goalAgentHistoryService = new GoalAgentHistoryService(goalRepo, goalAgentAssignmentRepo, {
     workspaceStatePath: options?.ui?.workspaceStatePath,
