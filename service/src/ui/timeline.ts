@@ -4,6 +4,7 @@ import type {
   RecoveryEvent,
   Reflection,
   RetryCheckEvent,
+  Knowledge,
 } from '../../../shared/types.js';
 
 export type TimelineEventType =
@@ -12,6 +13,7 @@ export type TimelineEventType =
   | 'policy_update'
   | 'retry_check'
   | 'recovery'
+  | 'knowledge'
   | 'progress'
   | 'projection_notice'
   | 'runtime_signal';
@@ -32,6 +34,7 @@ type TimelineInput = {
   policy: Policy | null;
   retryChecks: RetryCheckEvent[];
   recoveryEvents: RecoveryEvent[];
+  knowledge: Knowledge[];
 };
 
 export function buildTimeline(input: TimelineInput): TimelineEvent[] {
@@ -131,7 +134,17 @@ export function buildTimeline(input: TimelineInput): TimelineEvent[] {
     linkedIds: [],
   }));
 
-  return [...attemptEvents, ...reflectionEvents, ...policyEvents, ...retryCheckEvents, ...recoveryEvents].sort(
+  const knowledgeEvents: TimelineEvent[] = input.knowledge.map((knowledge) => ({
+    id: `knowledge:${knowledge.id}`,
+    timestamp: knowledge.createdAt,
+    type: 'knowledge' as const,
+    title: '认知',
+    summary: knowledge.observation,
+    impact: `可能原因：${knowledge.hypothesis}。下一步：${knowledge.implication}`,
+    linkedIds: knowledge.sourceAttemptId ? [`failure:${knowledge.sourceAttemptId}`] : [],
+  }));
+
+  return [...attemptEvents, ...reflectionEvents, ...policyEvents, ...retryCheckEvents, ...recoveryEvents, ...knowledgeEvents].sort(
     (left: TimelineEvent, right: TimelineEvent) => right.timestamp.localeCompare(left.timestamp)
   );
 }

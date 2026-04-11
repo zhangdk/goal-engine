@@ -90,11 +90,15 @@ type AgentDetailResponse = {
     timeline: Array<{
       id: string;
       timestamp: string;
-      type: 'failure' | 'reflection' | 'policy_update' | 'retry_check' | 'recovery' | 'progress' | 'projection_notice';
+      type: 'failure' | 'reflection' | 'policy_update' | 'retry_check' | 'recovery' | 'progress' | 'projection_notice' | 'runtime_signal' | 'knowledge';
       title: string;
       summary: string;
       impact: string;
       linked_ids: string[];
+    }>;
+    knowledge: Array<{
+      observation: string;
+      implication: string;
     }>;
     system_gaps: Array<{
       key: string;
@@ -477,6 +481,18 @@ describe('UI agent routes', () => {
         expect.objectContaining({ type: 'failure' }),
         expect.objectContaining({ type: 'reflection' }),
         expect.objectContaining({ type: 'policy_update' }),
+        expect.objectContaining({
+          type: 'knowledge',
+          summary: 'Repeated the same path again',
+        }),
+      ])
+    );
+    expect(body.data.knowledge).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          observation: 'Repeated the same path again',
+          implication: 'Explain what changed before retrying',
+        }),
       ])
     );
     expect(body.data.current_state).toEqual(

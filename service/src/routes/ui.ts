@@ -187,6 +187,15 @@ function toSnakeCaseDetail(view: NonNullable<ReturnType<typeof buildAgentDetail>
       title: item.title,
       detail: item.detail,
     })),
+    knowledge: view.knowledge.map((item) => ({
+      id: item.id,
+      timestamp: item.timestamp,
+      context: item.context,
+      observation: item.observation,
+      hypothesis: item.hypothesis,
+      implication: item.implication,
+      related_strategy_tags: item.relatedStrategyTags,
+    })),
     timeline: view.timeline.map((event) => ({
       id: event.id,
       timestamp: event.timestamp,
@@ -846,7 +855,7 @@ function renderDetailPage(agentId: string): string {
       .timeline-type.reflection { color: var(--warning); background: rgba(153, 96, 0, 0.12); }
       .timeline-type.policy_update { color: var(--accent); background: rgba(23, 60, 98, 0.12); }
       .timeline-type.retry_check { color: #8b5e00; background: rgba(139, 94, 0, 0.12); }
-      .timeline-type.recovery, .timeline-type.progress { color: var(--positive); background: rgba(35, 106, 75, 0.12); }
+      .timeline-type.recovery, .timeline-type.progress, .timeline-type.knowledge { color: var(--positive); background: rgba(35, 106, 75, 0.12); }
       .timeline-type.projection_notice { color: #6f4b16; background: rgba(180, 129, 38, 0.14); }
       .timeline-filters {
         display: flex;
@@ -1115,6 +1124,10 @@ function renderDetailPage(agentId: string): string {
               <div class="eyebrow">历史记录</div>
               <h2>思考记录与运行日志</h2>
               <div class="record-layout">
+                <section id="knowledge">
+                  <p class="timeline-summary">历史认知来自失败后的反思，保留观察、可能原因和下一步含义。</p>
+                  <div id="knowledge-list" class="record-list"></div>
+                </section>
                 <section>
                   <p class="timeline-summary">这里展示可持久化的反思、根因和必须改变的内容。当前系统还没有真正的聊天 transcript，所以先用思考记录替代。</p>
                   <div id="reflection-history" class="record-list"></div>
@@ -1240,6 +1253,7 @@ function renderDetailPage(agentId: string): string {
         { key: 'policy_update', label: '策略更新' },
         { key: 'retry_check', label: '重试检查' },
         { key: 'recovery', label: '恢复' },
+        { key: 'knowledge', label: '认知' },
         { key: 'progress', label: '进展' },
         { key: 'projection_notice', label: '投影观察' },
       ];
@@ -1314,6 +1328,7 @@ function renderDetailPage(agentId: string): string {
         if (type === 'failure') return '失败';
         if (type === 'reflection') return '反思';
         if (type === 'recovery') return '恢复';
+        if (type === 'knowledge') return '认知';
         if (type === 'progress') return '进展';
         if (type === 'projection_notice') return '投影观察';
         return type;
@@ -1325,6 +1340,7 @@ function renderDetailPage(agentId: string): string {
         if (type === 'policy_update') return '改写指导';
         if (type === 'retry_check') return '防止重复';
         if (type === 'recovery') return '恢复上下文';
+        if (type === 'knowledge') return '沉淀认知';
         if (type === 'progress') return '产生正向结果';
         if (type === 'projection_notice') return '发现偏差';
         return '记录变化';
@@ -1351,6 +1367,7 @@ function renderDetailPage(agentId: string): string {
           counts.policy_update ? counts.policy_update + ' 次策略修正' : null,
           counts.retry_check ? counts.retry_check + ' 次重试检查' : null,
           counts.recovery ? counts.recovery + ' 次恢复' : null,
+          counts.knowledge ? counts.knowledge + ' 条认知' : null,
           counts.progress ? counts.progress + ' 次进展' : null,
           counts.projection_notice ? counts.projection_notice + ' 次投影观察' : null,
         ].filter(Boolean);
@@ -1500,6 +1517,15 @@ function renderDetailPage(agentId: string): string {
             'partial'
           )).join('')
           : '<div class="muted">当前还没有可展示的思考记录。</div>';
+
+        document.getElementById('knowledge-list').innerHTML = Array.isArray(view.knowledge) && view.knowledge.length
+          ? view.knowledge.map((item) => renderRecordItem(
+            item.observation,
+            item.timestamp,
+            '可能原因：' + item.hypothesis + '。下一步：' + item.implication,
+            'clear'
+          )).join('')
+          : '<div class="muted">当前还没有历史认知。</div>';
 
         document.getElementById('operation-log').innerHTML = view.operation_log.length
           ? view.operation_log.map((item) => renderRecordItem(

@@ -9,6 +9,7 @@ function emptyInput() {
     policy: null as Policy | null,
     retryChecks: [] as RetryCheckEvent[],
     recoveryEvents: [] as RecoveryEvent[],
+    knowledge: [],
   };
 }
 
