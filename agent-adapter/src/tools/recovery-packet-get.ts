@@ -25,6 +25,10 @@ function toCamel(raw: RecoverySnake): RecoveryPacket {
     lastFailureSummary: raw.last_failure_summary,
     avoidStrategies: raw.avoid_strategies,
     preferredNextStep: raw.preferred_next_step,
+    recentAttempts: [],
+    relevantKnowledge: [],
+    sharedWisdom: [],
+    openQuestions: [],
     generatedAt: raw.generated_at,
   };
 }

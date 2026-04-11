@@ -56,6 +56,16 @@ export class RecoveryService {
       lastFailureSummary: latestFailure?.actionTaken,
       avoidStrategies: policy?.avoidStrategies ?? [],
       preferredNextStep: policy?.preferredNextStep,
+      recentAttempts: [],
+      currentPolicy: policy
+        ? {
+            preferredNextStep: policy.preferredNextStep,
+            mustCheckBeforeRetry: policy.mustCheckBeforeRetry,
+          }
+        : undefined,
+      relevantKnowledge: [],
+      sharedWisdom: [],
+      openQuestions: [],
       generatedAt: new Date().toISOString(),
     };
   }
