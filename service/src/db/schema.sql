@@ -70,6 +70,52 @@ CREATE TABLE IF NOT EXISTS reflections (
 CREATE INDEX IF NOT EXISTS idx_reflections_agent_goal_created
   ON reflections(agent_id, goal_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS knowledge (
+  id                    TEXT PRIMARY KEY,
+  agent_id              TEXT NOT NULL REFERENCES agents(id),
+  goal_id               TEXT NOT NULL,
+  source_attempt_id     TEXT,
+  context               TEXT NOT NULL,
+  observation           TEXT NOT NULL,
+  hypothesis            TEXT NOT NULL,
+  implication           TEXT NOT NULL,
+  related_strategy_tags TEXT NOT NULL DEFAULT '[]',
+  created_at            TEXT NOT NULL,
+  UNIQUE(agent_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE,
+  FOREIGN KEY(agent_id, source_attempt_id) REFERENCES attempts(agent_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_agent_goal_created
+  ON knowledge(agent_id, goal_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS knowledge_promotions (
+  id             TEXT PRIMARY KEY,
+  knowledge_id   TEXT NOT NULL,
+  visibility     TEXT NOT NULL CHECK(visibility IN ('private', 'agent', 'global')),
+  agent_id       TEXT,
+  subject        TEXT NOT NULL,
+  condition      TEXT NOT NULL DEFAULT '{}',
+  summary        TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  confidence     REAL NOT NULL DEFAULT 0.5 CHECK(confidence >= 0 AND confidence <= 1),
+  support_count  INTEGER NOT NULL DEFAULT 1 CHECK(support_count >= 1),
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL,
+  CHECK(
+    (visibility = 'global' AND agent_id IS NULL)
+    OR
+    (visibility IN ('private', 'agent') AND agent_id IS NOT NULL)
+  ),
+  FOREIGN KEY(knowledge_id) REFERENCES knowledge(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_promotions_visibility_subject
+  ON knowledge_promotions(visibility, subject);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_promotions_agent
+  ON knowledge_promotions(agent_id, visibility);
+
 CREATE TABLE IF NOT EXISTS policies (
   id                    TEXT PRIMARY KEY,
   agent_id              TEXT NOT NULL REFERENCES agents(id),
@@ -106,6 +152,22 @@ CREATE TABLE IF NOT EXISTS retry_check_events (
 
 CREATE INDEX IF NOT EXISTS idx_retry_check_events_agent_goal_created_at
   ON retry_check_events(agent_id, goal_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS knowledge_reference_events (
+  id                    TEXT PRIMARY KEY,
+  agent_id              TEXT NOT NULL REFERENCES agents(id),
+  goal_id               TEXT NOT NULL,
+  retry_check_event_id  TEXT,
+  knowledge_ids         TEXT NOT NULL DEFAULT '[]',
+  promotion_ids         TEXT NOT NULL DEFAULT '[]',
+  decision_surface      TEXT NOT NULL CHECK(decision_surface IN ('recovery_packet', 'retry_guard')),
+  created_at            TEXT NOT NULL,
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE,
+  FOREIGN KEY(retry_check_event_id) REFERENCES retry_check_events(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_reference_events_agent_goal_created
+  ON knowledge_reference_events(agent_id, goal_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS recovery_events (
   id            TEXT PRIMARY KEY,

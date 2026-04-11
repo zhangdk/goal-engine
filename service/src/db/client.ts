@@ -26,6 +26,26 @@ CREATE INDEX IF NOT EXISTS idx_goal_agent_assignments_agent_id_assigned_at
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goal_agent_assignments_one_open_per_goal
   ON goal_agent_assignments(goal_id)
   WHERE released_at IS NULL;`;
+const ATTEMPTS_TABLE_SQL = `
+CREATE TABLE attempts (
+  id             TEXT PRIMARY KEY,
+  agent_id       TEXT NOT NULL REFERENCES agents(id),
+  goal_id        TEXT NOT NULL,
+  stage          TEXT NOT NULL,
+  action_taken   TEXT NOT NULL,
+  strategy_tags  TEXT NOT NULL DEFAULT '[]',
+  result         TEXT NOT NULL CHECK(result IN ('success','partial','failure')),
+  failure_type   TEXT CHECK(failure_type IN (
+    'tool_error','capability_gap','strategy_mismatch','external_blocker',
+    'resource_limit','validation_fail','stuck_loop','ambiguous_goal'
+  )),
+  confidence     REAL,
+  next_hypothesis TEXT,
+  created_at     TEXT NOT NULL,
+  CHECK(result != 'failure' OR failure_type IS NOT NULL),
+  UNIQUE(agent_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);`;
 
 function migrateGoalAgentAssignmentsIfNeeded(db: Database.Database): void {
   const row = db.prepare(
@@ -96,6 +116,10 @@ function tableExists(db: Database.Database, table: string): boolean {
   return row !== undefined;
 }
 
+function foreignKeyCount(db: Database.Database, table: string): number {
+  return (db.prepare(`PRAGMA foreign_key_list(${table})`).all() as unknown[]).length;
+}
+
 function ensureAgentsTable(db: Database.Database): void {
   db.exec(`
 CREATE TABLE IF NOT EXISTS agents (
@@ -140,10 +164,14 @@ function migrateAgentIsolationColumnsIfNeeded(db: Database.Database): void {
 function migrateAgentIsolationIndexesIfNeeded(db: Database.Database): void {
   db.exec(`
 DROP INDEX IF EXISTS idx_goals_single_active;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
+  ON goals(agent_id, id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_one_active_per_agent
   ON goals(agent_id) WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS idx_goals_agent_status
   ON goals(agent_id, status, updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_agent_id_id
+  ON attempts(agent_id, id);
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
   ON attempts(agent_id, goal_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reflections_agent_goal_created
@@ -157,6 +185,70 @@ CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
 `);
 }
 
+function migrateAttemptsCompositeForeignKeyIfNeeded(db: Database.Database): void {
+  if (!tableExists(db, 'attempts') || foreignKeyCount(db, 'attempts') > 0) {
+    return;
+  }
+
+  const columns = tableColumns(db, 'attempts');
+  const hasRequiredColumns = [
+    'id',
+    'agent_id',
+    'goal_id',
+    'stage',
+    'action_taken',
+    'strategy_tags',
+    'result',
+    'failure_type',
+    'confidence',
+    'next_hypothesis',
+    'created_at',
+  ].every((column) => columns.has(column));
+  if (!hasRequiredColumns) {
+    return;
+  }
+
+  db.exec(`
+CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
+  ON goals(agent_id, id);
+DROP INDEX IF EXISTS idx_attempts_agent_goal_created;
+DROP INDEX IF EXISTS idx_attempts_created_at;
+ALTER TABLE attempts RENAME TO attempts_legacy;
+${ATTEMPTS_TABLE_SQL}
+INSERT INTO attempts (
+  id,
+  agent_id,
+  goal_id,
+  stage,
+  action_taken,
+  strategy_tags,
+  result,
+  failure_type,
+  confidence,
+  next_hypothesis,
+  created_at
+)
+SELECT
+  id,
+  agent_id,
+  goal_id,
+  stage,
+  action_taken,
+  strategy_tags,
+  result,
+  failure_type,
+  confidence,
+  next_hypothesis,
+  created_at
+FROM attempts_legacy;
+DROP TABLE attempts_legacy;
+CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
+  ON attempts(agent_id, goal_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_attempts_created_at
+  ON attempts(created_at);
+`);
+}
+
 /**
  * 将 schema.sql 应用到给定数据库实例。
  * 用于生产初始化和测试内存数据库共享同一 schema。
@@ -164,6 +256,7 @@ CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
 export function applySchema(db: Database.Database): void {
   const sql = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
   migrateAgentIsolationColumnsIfNeeded(db);
+  migrateAttemptsCompositeForeignKeyIfNeeded(db);
   db.exec(sql);
   migrateAgentIsolationIndexesIfNeeded(db);
   migrateGoalAgentAssignmentsIfNeeded(db);
