@@ -1,5 +1,5 @@
 import type { AdapterClient } from '../client.js';
-import type { Policy, Reflection } from '../../../shared/types.js';
+import type { Knowledge, Policy, Reflection } from '../../../shared/types.js';
 
 export type ReflectionCreateInput = {
   goalId: string;
@@ -13,6 +13,7 @@ export type ReflectionCreateInput = {
 export type ReflectionCreateResult = {
   reflection: Reflection;
   policy: Policy;
+  knowledge?: Knowledge;
 };
 
 type ReflectionSnake = {
@@ -35,6 +36,19 @@ type PolicySnake = {
   avoid_strategies: string[];
   must_check_before_retry: string[];
   updated_at: string;
+};
+
+type KnowledgeSnake = {
+  id: string;
+  agent_id?: string;
+  goal_id: string;
+  source_attempt_id?: string;
+  context: string;
+  observation: string;
+  hypothesis: string;
+  implication: string;
+  related_strategy_tags: string[];
+  created_at: string;
 };
 
 function reflectionToCamel(raw: ReflectionSnake): Reflection {
@@ -63,6 +77,21 @@ function policyToCamel(raw: PolicySnake): Policy {
   };
 }
 
+function knowledgeToCamel(raw: KnowledgeSnake): Knowledge {
+  return {
+    id: raw.id,
+    agentId: raw.agent_id ?? 'goal-engine-demo',
+    goalId: raw.goal_id,
+    sourceAttemptId: raw.source_attempt_id,
+    context: raw.context,
+    observation: raw.observation,
+    hypothesis: raw.hypothesis,
+    implication: raw.implication,
+    relatedStrategyTags: raw.related_strategy_tags,
+    createdAt: raw.created_at,
+  };
+}
+
 export async function reflectionCreate(
   client: AdapterClient,
   input: ReflectionCreateInput
@@ -70,6 +99,7 @@ export async function reflectionCreate(
   const raw = await client.post<{
     reflection: ReflectionSnake;
     policy: PolicySnake;
+    knowledge?: KnowledgeSnake;
   }>('/api/v1/reflections', {
     goal_id: input.goalId,
     attempt_id: input.attemptId,
@@ -82,5 +112,6 @@ export async function reflectionCreate(
   return {
     reflection: reflectionToCamel(raw.reflection),
     policy: policyToCamel(raw.policy),
+    knowledge: raw.knowledge ? knowledgeToCamel(raw.knowledge) : undefined,
   };
 }

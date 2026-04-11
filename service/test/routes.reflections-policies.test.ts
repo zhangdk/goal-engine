@@ -66,6 +66,39 @@ describe('POST /api/v1/reflections', () => {
     expect(body.data.policy.preferred_next_step).toBe('切换到官方文档');
   });
 
+  it('returns descriptive knowledge when a reflection is created', async () => {
+    const res = await app.request('/api/v1/reflections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        attempt_id: failAttemptId,
+        summary: 'The aggregator page timed out.',
+        root_cause: 'The site is unreliable in automation.',
+        must_change: 'Use official event pages first.',
+        avoid_strategy: 'event_search',
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json() as {
+      data: {
+        knowledge: {
+          context: string;
+          observation: string;
+          hypothesis: string;
+          implication: string;
+          related_strategy_tags: string[];
+        };
+      };
+    };
+
+    expect(body.data.knowledge.observation).toBe('The aggregator page timed out.');
+    expect(body.data.knowledge.hypothesis).toBe('The site is unreliable in automation.');
+    expect(body.data.knowledge.implication).toBe('Use official event pages first.');
+    expect(body.data.knowledge.related_strategy_tags).toContain('broad-web-search');
+  });
+
   it('returns 409 when duplicate reflection for same attempt', async () => {
     await app.request('/api/v1/reflections', {
       method: 'POST',

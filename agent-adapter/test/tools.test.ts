@@ -16,6 +16,7 @@ import { reflectionGenerate } from '../src/tools/reflection-generate.js';
 import { retryGuardCheck } from '../src/tools/retry-guard-check.js';
 import { recoveryPacketGet } from '../src/tools/recovery-packet-get.js';
 import { policyGetCurrent } from '../src/tools/policy-get-current.js';
+import { reflectionCreate } from '../src/tools/reflection-create.js';
 
 // ─── Mock fetch ───────────────────────────────────────────────────────────────
 
@@ -178,6 +179,55 @@ describe('reflectionGenerate', () => {
     keys.forEach(k => {
       expect(result).toHaveProperty(k);
     });
+  });
+});
+
+describe('reflectionCreate', () => {
+  it('maps optional returned knowledge to camelCase', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        reflection: {
+          id: 'reflection_1',
+          goal_id: 'goal_1',
+          attempt_id: 'attempt_1',
+          summary: 'Timed out',
+          root_cause: 'Aggregator unstable',
+          must_change: 'Use official pages',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+        policy: {
+          id: 'policy_1',
+          goal_id: 'goal_1',
+          preferred_next_step: 'Use official pages',
+          avoid_strategies: ['broad-web-search'],
+          must_check_before_retry: ['确认不同路径'],
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+        knowledge: {
+          id: 'know_1',
+          goal_id: 'goal_1',
+          source_attempt_id: 'attempt_1',
+          context: 'Stage: search; action: broad search',
+          observation: 'Timed out',
+          hypothesis: 'Aggregator unstable',
+          implication: 'Use official pages',
+          related_strategy_tags: ['broad-web-search'],
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await reflectionCreate(client, {
+      goalId: 'goal_1',
+      attemptId: 'attempt_1',
+      summary: 'Timed out',
+      rootCause: 'Aggregator unstable',
+      mustChange: 'Use official pages',
+    });
+
+    expect(result.knowledge?.observation).toBe('Timed out');
+    expect(result.knowledge?.relatedStrategyTags).toEqual(['broad-web-search']);
   });
 });
 

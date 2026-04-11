@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { PolicyService } from '../services/policy.service.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
+import type { Knowledge } from '../../../shared/types.js';
 import { resolveAgentContext } from '../agent-context.js';
 
 const createReflectionSchema = z.object({
@@ -61,6 +62,7 @@ export function reflectionsRouter(
         data: {
           reflection: reflectionToSnakeCase(result.reflection),
           policy: policyToSnakeCase(result.policy),
+          knowledge: result.knowledge ? knowledgeToSnakeCase(result.knowledge) : undefined,
         },
       }, 201);
     } catch (err: unknown) {
@@ -116,5 +118,20 @@ function policyToSnakeCase(p: {
     avoid_strategies: p.avoidStrategies,
     must_check_before_retry: p.mustCheckBeforeRetry,
     updated_at: p.updatedAt,
+  };
+}
+
+function knowledgeToSnakeCase(k: Knowledge) {
+  return {
+    id: k.id,
+    agent_id: k.agentId,
+    goal_id: k.goalId,
+    source_attempt_id: k.sourceAttemptId,
+    context: k.context,
+    observation: k.observation,
+    hypothesis: k.hypothesis,
+    implication: k.implication,
+    related_strategy_tags: k.relatedStrategyTags,
+    created_at: k.createdAt,
   };
 }
