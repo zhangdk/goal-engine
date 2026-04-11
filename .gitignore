@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+service/node_modules/
+agent-adapter/node_modules/
+
+# Worktrees
+.worktrees/
+worktrees/
+
+# Build and generated TypeScript output
+service/src/**/*.js
+service/test/**/*.js
+service/e2e/**/*.js
+agent-adapter/src/**/*.js
+agent-adapter/test/**/*.js
+agent-adapter/examples/**/*.js
+examples/**/*.js
+shared/types.js
+
+# Local databases and SQLite sidecars
+*.db
+*.db-shm
+*.db-wal
+service/*.db
+service/*.db-shm
+service/*.db-wal
+
+# Runtime state and local tool output
+.openclaw/runtime-state.json
+agent-adapter/.openclaw/runtime-state.json
+.playwright-mcp/
+.gstack/
+.context/
+service/test-results/
+service/*.db.backup-*
+
+# Screenshots and ad-hoc browser artifacts
+*.png
+*.log
+
+# OS/editor noise
+.DS_Store

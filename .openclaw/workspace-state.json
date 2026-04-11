@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "bootstrapSeededAt": "2026-04-04T02:32:08.785Z",
+  "goalEngine": {
+    "currentManagedAgentId": "goal-engine-demo",
+    "managedAgents": [
+      {
+        "agentId": "goal-engine-demo",
+        "agentName": "goal-engine-demo",
+        "workspace": "goal-engine",
+        "session": "main",
+        "managed": true
+      },
+      {
+        "agentId": "goal-engine-research",
+        "agentName": "goal-engine-research",
+        "workspace": "goal-engine",
+        "session": "research",
+        "managed": true
+      }
+    ],
+    "entrypoints": [
+      "start goal",
+      "show goal status",
+      "record failed attempt",
+      "recover current goal",
+      "check retry"
+    ],
+    "projectionDir": "examples/workspace/goal-engine",
+    "runtime": {
+      "dispatchModule": "agent-adapter/src/openclaw/dispatch-entrypoint.ts",
+      "bootstrapModule": "agent-adapter/src/openclaw/bootstrap-session.ts",
+      "cliScript": "agent-adapter/src/openclaw/cli.ts",
+      "commandsFile": "openclaw/commands.json"
+    },
+    "bootstrapBehavior": {
+      "preferProjection": true,
+      "rebuildOnMissingProjection": true,
+      "emptyStateEntrypoint": "start goal"
+    }
+  }
+}

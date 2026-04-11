@@ -1,0 +1,42 @@
+{
+  "id": "hybrid-context-bridge",
+  "name": "Hybrid Context Bridge",
+  "description": "融合 OpenClaw 插件生命周期与 Goal Engine 工作区上下文的混合插件示例",
+  "version": "0.1.0",
+  "kind": "context-engine",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "goalEngineServiceUrl": {
+        "type": "string",
+        "default": "http://localhost:3100"
+      },
+      "workspaceStatePath": {
+        "type": "string"
+      },
+      "runtimeStatePath": {
+        "type": "string"
+      },
+      "projectionDir": {
+        "type": "string",
+        "description": "本地 projection 文件输出目录"
+      },
+      "autoSync": {
+        "type": "boolean",
+        "default": true,
+        "description": "自动同步 goal 状态到工作区"
+      }
+    }
+  },
+  "uiHints": {
+    "goalEngineServiceUrl": {
+      "label": "Goal Engine Service URL",
+      "placeholder": "http://localhost:3100"
+    },
+    "autoSync": {
+      "label": "Auto Sync",
+      "help": "自动将 goal 状态同步到工作区"
+    }
+  }
+}

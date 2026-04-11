@@ -1,0 +1,24 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - link "← 返回 Agent 列表" [ref=e4] [cursor=pointer]:
+      - /url: /ui
+    - generic [ref=e5]: 已加载 Agent 详情
+  - generic [ref=e6]:
+    - generic [ref=e7]: Agent 概览
+    - generic [ref=e8]:
+      - generic [ref=e9]: goal-engine-demo · 进行中 · 帮我在上海浦东张江找一个适合3-6人播客录制与访谈直播的小型录音间或直播间 / initial
+      - generic [ref=e10]
+    - generic [ref=e15]:
+      - generic [ref=e16]
+      - generic [ref=e19]: 当前无明显风险 · 下一步：绕过阻碍或请求外部介入
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]: 进化列表
+      - generic [ref=e24]
+      - generic [ref=e29]
+    - group [ref=e151]:
+      - generic "更多信息" [ref=e152] [cursor=pointer]
+    - generic [ref=e153]:
+      - group [ref=e154]
+      - group [ref=e156]
+      - group [ref=e158]

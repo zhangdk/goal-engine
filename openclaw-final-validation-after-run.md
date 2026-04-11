@@ -1,0 +1,401 @@
+- generic [ref=e64]:
+  - banner [ref=e65]:
+    - generic [ref=e66]:
+      - generic [ref=e70]:
+        - generic [ref=e71]: OpenClaw
+        - generic [ref=e72]: ›
+        - generic [ref=e73]: 聊天
+      - generic [ref=e74]:
+        - button "Open command palette" [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: 搜索
+          - generic [ref=e77]: ⌘K
+        - group "Color mode" [ref=e79]:
+          - 'button "Color mode: System" [pressed] [ref=e80] [cursor=pointer]':
+            - img [ref=e81]
+          - 'button "Color mode: Light" [ref=e83] [cursor=pointer]':
+            - img [ref=e84]
+          - 'button "Color mode: Dark" [ref=e90] [cursor=pointer]':
+            - img [ref=e91]
+  - complementary [ref=e94]:
+    - generic [ref=e95]:
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - img "OpenClaw" [ref=e98]
+          - generic [ref=e99]:
+            - generic [ref=e100]: 控制
+            - generic [ref=e101]: OpenClaw
+        - button "折叠侧边栏" [ref=e102] [cursor=pointer]:
+          - img [ref=e104]
+      - navigation [ref=e108]:
+        - generic [ref=e109]:
+          - button "聊天" [expanded] [ref=e110] [cursor=pointer]:
+            - generic [ref=e111]: 聊天
+            - img [ref=e113]
+          - link "聊天" [ref=e116] [cursor=pointer]:
+            - /url: /chat
+            - img [ref=e118]
+            - generic [ref=e120]: 聊天
+        - generic [ref=e121]:
+          - button "控制" [expanded] [ref=e122] [cursor=pointer]:
+            - generic [ref=e123]: 控制
+            - img [ref=e125]
+          - generic [ref=e127]:
+            - link "概览" [ref=e128] [cursor=pointer]:
+              - /url: /overview
+              - img [ref=e130]
+              - generic [ref=e131]: 概览
+            - link "频道" [ref=e132] [cursor=pointer]:
+              - /url: /channels
+              - img [ref=e134]
+              - generic [ref=e137]: 频道
+            - link "实例" [ref=e138] [cursor=pointer]:
+              - /url: /instances
+              - img [ref=e140]
+              - generic [ref=e143]: 实例
+            - link "会话" [ref=e144] [cursor=pointer]:
+              - /url: /sessions
+              - img [ref=e146]
+              - generic [ref=e149]: 会话
+            - link "使用情况" [ref=e150] [cursor=pointer]:
+              - /url: /usage
+              - img [ref=e152]
+              - generic [ref=e153]: 使用情况
+            - link "定时任务" [ref=e154] [cursor=pointer]:
+              - /url: /cron
+              - img [ref=e156]
+              - generic [ref=e161]: 定时任务
+        - generic [ref=e162]:
+          - button "代理" [expanded] [ref=e163] [cursor=pointer]:
+            - generic [ref=e164]: 代理
+            - img [ref=e166]
+          - generic [ref=e168]:
+            - link "代理" [ref=e169] [cursor=pointer]:
+              - /url: /agents
+              - img [ref=e171]
+              - generic [ref=e173]: 代理
+            - link "技能" [ref=e174] [cursor=pointer]:
+              - /url: /skills
+              - img [ref=e176]
+              - generic [ref=e178]: 技能
+            - link "节点" [ref=e179] [cursor=pointer]:
+              - /url: /nodes
+              - img [ref=e181]
+              - generic [ref=e183]: 节点
+            - link "梦境" [ref=e184] [cursor=pointer]:
+              - /url: /dreaming
+              - img [ref=e186]
+              - generic [ref=e188]: 梦境
+        - generic [ref=e189]:
+          - button "设置" [expanded] [ref=e190] [cursor=pointer]:
+            - generic [ref=e191]: 设置
+            - img [ref=e193]
+          - generic [ref=e195]:
+            - link "配置" [ref=e196] [cursor=pointer]:
+              - /url: /config
+              - img [ref=e198]
+              - generic [ref=e201]: 配置
+            - link "通信" [ref=e202] [cursor=pointer]:
+              - /url: /communications
+              - img [ref=e204]
+              - generic [ref=e207]: 通信
+            - link "外观与设置" [ref=e208] [cursor=pointer]:
+              - /url: /appearance
+              - img [ref=e210]
+              - generic [ref=e212]: 外观与设置
+            - link "自动化" [ref=e213] [cursor=pointer]:
+              - /url: /automation
+              - img [ref=e215]
+              - generic [ref=e217]: 自动化
+            - link "基础设施" [ref=e218] [cursor=pointer]:
+              - /url: /infrastructure
+              - img [ref=e220]
+              - generic [ref=e223]: 基础设施
+            - link "AI 与代理" [ref=e224] [cursor=pointer]:
+              - /url: /ai-agents
+              - img [ref=e226]
+              - generic [ref=e236]: AI 与代理
+            - link "调试" [ref=e237] [cursor=pointer]:
+              - /url: /debug
+              - img [ref=e239]
+              - generic [ref=e248]: 调试
+            - link "日志" [ref=e249] [cursor=pointer]:
+              - /url: /logs
+              - img [ref=e251]
+              - generic [ref=e254]: 日志
+      - generic [ref=e256]:
+        - link "文档" [ref=e257] [cursor=pointer]:
+          - /url: https://docs.openclaw.ai
+          - img [ref=e259]
+          - generic [ref=e261]: 文档
+          - img [ref=e263]
+        - generic "v2026.4.9" [ref=e266]:
+          - generic [ref=e267]: 版本
+          - generic [ref=e268]: v2026.4.9
+          - 'img "Gateway status: 在线" [ref=e269]'
+  - main [ref=e270]:
+    - generic [ref=e271]:
+      - generic [ref=e273]:
+        - combobox [ref=e275] [cursor=pointer]:
+          - option "goal-engine-demo / main" [selected]
+          - option "heartbeat"
+          - option "feishu:g-oc_07f333525ee77f179583c8ef69db01ac"
+          - option "feishu:g-oc_8fb6586462806af18ea7dbf6f0cf38bd"
+          - option "feishu:direct:ou_20793e016a24231f5b121c887f7c1c1f"
+          - option "p30-survivor-alpha / main"
+          - option "P30 WP3 Autonomy (p30-wp3-autonomy) / main"
+          - option "P30 WP1 Cognition (p30-wp1-cognition) / main"
+          - option "P30 WP2 Plugin (p30-wp2-plugin) / main"
+          - option "P30 OpenClaw Runtime (p30-openclaw-runtime) / main"
+          - option "P30 Autonomy Loop (p30-autonomy-loop) / main"
+          - option "P30 State Architect (p30-state-architect) / main"
+          - option "P30 Event Architect (p30-event-architect) / main"
+          - option "CIO (cio) / 张德阔"
+          - option "feishu:oc_c65e6dd2ace2a49494634d3d6b366c32"
+          - option "feishu:direct:ou_117901f9c093a7fcd0d978dac5d016e8"
+          - option "feishu:g-oc_be070bfe45c1e07cc6d53403ce3055bd"
+          - option "feishu:direct:ou_a75dedd51f0d476de7ecd30d265c5118"
+          - option "📈 运营总监"
+          - option "feishu:direct:ou_9bcf5bd61aa67d89f1ede6f49bf1d235"
+          - option "feishu:direct:ou_cc3cbe2d0b8b3c0e5afac896c94959a5"
+          - option "feishu:direct:ou_c00022e55e1c526ad5d407d0a5521c5c"
+          - option "ou_3ad6df29684ebded5ba3cdbb7535f12a"
+          - option "Backend Developer (backend) / 张德阔"
+          - option "Frontend Developer (frontend) / 张德阔"
+        - combobox "Chat model" [disabled] [ref=e277] [cursor=pointer]:
+          - option "Default (MiniMax-M2.5 · minimax)"
+          - option "MiniMax-M2.5 · minimax" [selected]
+          - option "kimi-k2.5 · moonshot"
+          - option "coder-model · qwen-portal"
+          - option "vision-model · qwen-portal"
+        - combobox "Chat thinking level" [disabled] [ref=e279] [cursor=pointer]:
+          - option "Default (off)" [selected]
+          - option "Off"
+          - option "Minimal"
+          - option "Low"
+          - option "Medium"
+          - option "High"
+          - option "Adaptive"
+      - generic [ref=e281]:
+        - button "刷新聊天数据" [ref=e282] [cursor=pointer]:
+          - img [ref=e283]
+        - generic [ref=e286]: "|"
+        - button "切换助手思考/工作输出" [pressed] [ref=e287] [cursor=pointer]:
+          - img [ref=e288]
+        - button "切换工具调用和工具结果" [pressed] [ref=e298] [cursor=pointer]:
+          - img [ref=e299]
+        - button "切换专注模式 (隐藏侧边栏 + 页面页眉)" [ref=e301] [cursor=pointer]:
+          - img [ref=e302]
+        - button "2" [pressed] [ref=e308] [cursor=pointer]:
+          - generic [ref=e309]:
+            - img [ref=e310]
+            - generic: "2"
+    - generic [ref=e313]:
+      - log [ref=e316]:
+        - generic [ref=e317]:
+          - generic [ref=e318]:
+            - img [ref=e320]
+            - generic [ref=e323]:
+              - paragraph [ref=e326]
+              - generic [ref=e327]
+          - generic [ref=e331]:
+            - img [ref=e333]
+            - generic [ref=e335]:
+              - group [ref=e337]
+              - group [ref=e345]
+              - group [ref=e353]
+              - group [ref=e361]
+              - group [ref=e369]
+              - group [ref=e377]
+              - generic [ref=e384]
+          - generic [ref=e394]:
+            - img [ref=e396]
+            - generic [ref=e398]:
+              - generic [ref=e399]
+              - generic [ref=e402]
+          - generic [ref=e412]:
+            - img [ref=e414]
+            - generic [ref=e417]:
+              - paragraph [ref=e420]: 继续当前 3-6 人播客录音间/直播间任务。这一轮严格遵守最新 guidance：避免 web_search，不要重复同一路径。只选一个明显不同的新路径推进，并在开头先说明 new_path 和 why_better_than_last_round。
+              - generic [ref=e421]
+          - generic [ref=e425]:
+            - img [ref=e427]
+            - generic [ref=e429]:
+              - group [ref=e431]
+              - group [ref=e439]
+              - group [ref=e447]
+              - group [ref=e455]
+              - generic [ref=e462]
+              - group [ref=e479]
+              - group [ref=e487]
+              - group [ref=e495]
+              - group [ref=e503]
+              - group [ref=e511]
+              - group [ref=e519]
+              - group [ref=e527]
+              - group [ref=e535]
+              - group [ref=e543]
+              - group [ref=e551]
+              - group [ref=e559]
+              - group [ref=e567]
+              - group [ref=e575]
+              - group [ref=e583]
+              - group [ref=e591]
+              - group [ref=e599]
+              - group [ref=e607]
+              - group [ref=e615]
+              - group [ref=e623]
+              - generic [ref=e630]
+              - group [ref=e642]
+              - group [ref=e650]
+              - group [ref=e658]
+              - group [ref=e666]
+              - group [ref=e674]
+              - group [ref=e682]
+              - group [ref=e690]
+              - group [ref=e698]
+              - group [ref=e706]
+              - group [ref=e714]
+              - group [ref=e722]
+              - group [ref=e730]
+              - group [ref=e738]
+              - group [ref=e746]
+              - group [ref=e754]
+              - group [ref=e762]
+              - group [ref=e770]
+              - group [ref=e778]
+              - group [ref=e786]
+              - generic [ref=e793]
+              - group [ref=e806]
+              - group [ref=e814]
+              - group [ref=e822]
+              - group [ref=e830]
+              - group [ref=e838]
+              - group [ref=e846]
+              - group [ref=e854]
+              - group [ref=e862]
+              - group [ref=e870]
+              - group [ref=e878]
+              - group [ref=e886]
+              - group [ref=e894]
+              - group [ref=e902]
+              - group [ref=e910]
+              - group [ref=e918]
+              - group [ref=e926]
+              - group [ref=e934]
+              - group [ref=e942]
+              - group [ref=e950]
+              - generic [ref=e957]
+          - generic [ref=e967]:
+            - img [ref=e969]
+            - generic [ref=e971]:
+              - generic [ref=e972]
+              - generic [ref=e1012]
+          - generic [ref=e1022]:
+            - img [ref=e1024]
+            - generic [ref=e1027]:
+              - paragraph [ref=e1030]: 继续当前 3-6 人播客录音间/直播间任务。这次不要新开 session，也不要重复 web_search。先输出两行：new_path=... 和 why_better_than_last_round=...。然后只执行一个非 web_search 的新路径，例如 direct candidate page / map-like page / fallback skill path 中的一种。
+              - generic [ref=e1031]
+          - generic [ref=e1035]:
+            - img [ref=e1037]
+            - generic [ref=e1039]:
+              - group [ref=e1041]
+              - group [ref=e1049]
+              - generic [ref=e1056]
+              - group [ref=e1068]
+              - generic [ref=e1075]
+              - group [ref=e1089]
+              - group [ref=e1097]
+              - group [ref=e1105]
+              - generic [ref=e1112]
+              - group [ref=e1124]
+              - group [ref=e1132]
+              - group [ref=e1140]
+              - group [ref=e1148]
+              - group [ref=e1156]
+              - group [ref=e1164]
+              - group [ref=e1172]
+              - group [ref=e1180]
+              - group [ref=e1188]
+              - group [ref=e1196]
+              - group [ref=e1204]
+              - group [ref=e1212]
+              - group [ref=e1220]
+              - group [ref=e1228]
+              - group [ref=e1236]
+              - group [ref=e1244]
+              - group [ref=e1252]
+              - group [ref=e1260]
+              - group [ref=e1268]
+              - group [ref=e1276]
+              - group [ref=e1284]
+              - group [ref=e1292]
+              - group [ref=e1300]
+              - group [ref=e1308]
+              - group [ref=e1316]
+              - group [ref=e1324]
+              - group [ref=e1332]
+              - group [ref=e1340]
+              - group [ref=e1348]
+              - group [ref=e1356]
+              - group [ref=e1364]
+              - group [ref=e1372]
+              - group [ref=e1380]
+              - group [ref=e1388]
+              - group [ref=e1396]
+              - group [ref=e1404]
+              - group [ref=e1412]
+              - generic [ref=e1419]
+          - generic [ref=e1429]:
+            - img [ref=e1431]
+            - generic [ref=e1433]:
+              - generic [ref=e1434]
+              - generic [ref=e1447]
+          - generic [ref=e1457]:
+            - img [ref=e1459]
+            - generic [ref=e1462]:
+              - paragraph [ref=e1465]: 继续当前 3-6 人播客录音间/直播间任务。不要再走 web_search、multi-search-engine、feishu、web_fetch、agent_browser。只做一个本机原生软件路径验证：先声明 new_path=本机原生 App 路径，why_better_than_last_round=...；然后只检查本机是否有相关原生 App 或可直接打开的原生入口能帮助找到张江录音间/直播间线索。如果本机原生路径也不可用，立即调用 goal_engine_record_failed_attempt 和 goal_engine_check_retry，然后停止。
+              - generic [ref=e1466]
+          - generic [ref=e1470]:
+            - img [ref=e1472]
+            - generic [ref=e1474]:
+              - generic [ref=e1475]
+              - group [ref=e1490]
+              - group [ref=e1498]
+              - group [ref=e1506]
+              - group [ref=e1514]
+              - group [ref=e1522]
+              - group [ref=e1530]
+              - group [ref=e1538]
+              - group [ref=e1546]
+              - group [ref=e1554]
+              - generic [ref=e1561]
+          - generic [ref=e1571]:
+            - img [ref=e1573]
+            - generic [ref=e1575]:
+              - generic [ref=e1576]
+              - generic [ref=e1588]
+          - generic [ref=e1620]:
+            - img [ref=e1622]
+            - generic [ref=e1625]:
+              - paragraph [ref=e1628]: 帮我在上海浦东张江找一个适合 5-8 人做产品直播或线上课程录制的小型拍摄空间，预算半天 1500-4000 元。最终必须给我至少一个页面明确展示的联系电话，并附上场地名称、地址、来源链接。不要用搜索摘要里的号码。如果当前 Goal Engine active goal 和这个任务不一致，先处理对齐，不要直接搜索。如果某条路径失败，明确说明 do_not_repeat、new_path、why_better_than_last_round，然后只执行这一条新路径。
+              - generic [ref=e1629]
+          - generic [ref=e1646]:
+            - img [ref=e1648]
+            - generic [ref=e1650]:
+              - group [ref=e1651]
+              - group [ref=e1658]
+              - generic [ref=e1665]
+          - img [ref=e1635]
+      - generic [ref=e1598]:
+        - textbox "Message Assistant (Enter to send)" [active] [ref=e1599]
+        - generic [ref=e1600]:
+          - generic [ref=e1601]:
+            - button "Attach file" [ref=e1602] [cursor=pointer]:
+              - img [ref=e1603]
+            - button "Voice input" [ref=e1605] [cursor=pointer]:
+              - img [ref=e1606]
+          - generic [ref=e1609]:
+            - button "Export chat" [ref=e1612] [cursor=pointer]:
+              - img [ref=e1613]
+            - button "Stop generating" [ref=e1643] [cursor=pointer]:
+              - img [ref=e1644]

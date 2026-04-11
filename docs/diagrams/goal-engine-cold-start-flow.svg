@@ -1,0 +1,139 @@
+<svg width="1100" height="760" viewBox="0 0 1100 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Goal Engine 冷启动辅助流程图</title>
+  <desc id="desc">展示 Agent 在没有历史记录时，如何通过 Goal Engine 与 Loop Runtime 进入可推进、可纠偏、可续跑的轨道。</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #f7f4ee; }
+      .title { font: 700 30px Georgia, serif; fill: #1f2937; }
+      .subtitle { font: 400 14px Georgia, serif; fill: #4b5563; }
+      .phase { fill: #111827; font: 700 14px Georgia, serif; letter-spacing: 1px; }
+      .boxTitle { font: 700 18px Georgia, serif; fill: #111827; }
+      .body { font: 400 13px Georgia, serif; fill: #1f2937; }
+      .small { font: 400 12px Georgia, serif; fill: #374151; }
+      .label { font: 700 12px Georgia, serif; fill: #111827; }
+      .input { fill: #e0f2fe; stroke: #0284c7; stroke-width: 2; rx: 18; }
+      .service { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; rx: 18; }
+      .agent { fill: #ede9fe; stroke: #7c3aed; stroke-width: 2; rx: 18; }
+      .runtime { fill: #fef3c7; stroke: #d97706; stroke-width: 2; rx: 18; }
+      .decision { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; }
+      .note { fill: #f9fafb; stroke: #9ca3af; stroke-width: 1.5; rx: 16; }
+      .blue { stroke: #0284c7; stroke-width: 2.5; fill: none; marker-end: url(#blueArrow); }
+      .green { stroke: #16a34a; stroke-width: 2.5; fill: none; marker-end: url(#greenArrow); }
+      .purple { stroke: #7c3aed; stroke-width: 2.5; fill: none; marker-end: url(#purpleArrow); }
+      .orange { stroke: #d97706; stroke-width: 2.5; fill: none; marker-end: url(#orangeArrow); }
+      .gray { stroke: #6b7280; stroke-width: 2; fill: none; stroke-dasharray: 8 6; marker-end: url(#grayArrow); }
+    </style>
+
+    <marker id="blueArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0284c7"/>
+    </marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="purpleArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+    </marker>
+    <marker id="orangeArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d97706"/>
+    </marker>
+    <marker id="grayArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1100" height="760"/>
+
+  <text class="title" x="40" y="48">Goal Engine 冷启动辅助流程</text>
+  <text class="subtitle" x="40" y="74">关键结论：冷启动不是“恢复历史”，而是“初始化目标结构 + 默认首轮策略 + 默认失败续跑规则”。</text>
+
+  <text class="phase" x="60" y="120">PHASE 1 · INITIALIZE</text>
+  <text class="phase" x="420" y="120">PHASE 2 · FIRST RUN</text>
+  <text class="phase" x="760" y="120">PHASE 3 · CONTINUE</text>
+
+  <rect class="input" x="40" y="150" width="260" height="120"/>
+  <text class="boxTitle" x="60" y="182">1. 输入初始目标</text>
+  <text class="body" x="60" y="210">用户 / 外部系统提供：</text>
+  <text class="small" x="60" y="234">• goal title</text>
+  <text class="small" x="60" y="252">• success criteria</text>
+
+  <rect class="service" x="40" y="320" width="260" height="180"/>
+  <text class="boxTitle" x="60" y="352">2. Service 生成初始运行框架</text>
+  <text class="small" x="60" y="380">• 建立 Goal 对象</text>
+  <text class="small" x="60" y="402">• 推导 current stage</text>
+  <text class="small" x="60" y="424">• 生成 initial goal packet</text>
+  <text class="small" x="60" y="446">• 给出 preferred first step</text>
+  <text class="small" x="60" y="468">• 注入 default fallback policy</text>
+
+  <rect class="runtime" x="380" y="150" width="300" height="150"/>
+  <text class="boxTitle" x="400" y="182">3. Loop Runtime 拉起首轮 session</text>
+  <text class="small" x="400" y="210">• 读取 initial goal packet</text>
+  <text class="small" x="400" y="232">• 注入最小上下文，而不是自由放任</text>
+  <text class="small" x="400" y="254">• 强制首轮按最小可验证动作起步</text>
+  <text class="small" x="400" y="276">• 记录 active goal 已进入运行态</text>
+
+  <rect class="agent" x="380" y="350" width="300" height="150"/>
+  <text class="boxTitle" x="400" y="382">4. Agent 执行首轮最小动作</text>
+  <text class="small" x="400" y="410">首轮原则：</text>
+  <text class="small" x="400" y="432">• 先验证边界，不直接冲最终结果</text>
+  <text class="small" x="400" y="454">• 先拿最小进展，不追求一步完成</text>
+  <text class="small" x="400" y="476">• 优先低风险、高信息增益动作</text>
+
+  <polygon class="decision" points="835,220 945,300 835,380 725,300"/>
+  <text class="boxTitle" x="790" y="292">5. 本轮结果？</text>
+  <text class="small" x="783" y="314">成功 / 部分成功 / 失败</text>
+
+  <rect class="service" x="780" y="150" width="260" height="90"/>
+  <text class="boxTitle" x="800" y="182">6A. 写回进展</text>
+  <text class="small" x="800" y="206">• append attempt</text>
+  <text class="small" x="800" y="226">• 更新 goal stage / progress</text>
+
+  <rect class="service" x="780" y="410" width="260" height="150"/>
+  <text class="boxTitle" x="800" y="442">6B. 失败后进入默认纠偏</text>
+  <text class="small" x="800" y="470">• append attempt</text>
+  <text class="small" x="800" y="492">• failure classification</text>
+  <text class="small" x="800" y="514">• 生成 reflection</text>
+  <text class="small" x="800" y="536">• 生成首个 policy</text>
+
+  <rect class="runtime" x="420" y="580" width="520" height="110"/>
+  <text class="boxTitle" x="440" y="612">7. Runtime 再次拉起下一轮</text>
+  <text class="small" x="440" y="638">• 未完成就不消失，转入下一轮</text>
+  <text class="small" x="440" y="660">• 读取 recovery packet / policy</text>
+  <text class="small" x="440" y="682">• 进入“热启动闭环”：带着历史继续，而不是重新开始</text>
+
+  <rect class="note" x="40" y="560" width="320" height="130"/>
+  <text class="boxTitle" x="60" y="592">冷启动的真正目标</text>
+  <text class="small" x="60" y="620">不是让 Agent 第一次就最聪明，</text>
+  <text class="small" x="60" y="642">而是让它从第一轮开始就在正确轨道上：</text>
+  <text class="small" x="60" y="664">可推进、可写回、可纠偏、可续跑。</text>
+
+  <path class="blue" d="M170 270 L170 320"/>
+  <text class="label" x="184" y="304">初始化</text>
+
+  <path class="green" d="M300 410 C340 410, 340 225, 380 225"/>
+  <text class="label" x="310" y="286">initial goal packet</text>
+
+  <path class="orange" d="M530 300 L530 350"/>
+  <text class="label" x="548" y="332">首轮拉起</text>
+
+  <path class="purple" d="M680 425 C710 425, 715 360, 760 335"/>
+  <text class="label" x="692" y="392">提交结果</text>
+
+  <path class="green" d="M835 220 L835 240"/>
+  <text class="label" x="852" y="234">成功</text>
+
+  <path class="green" d="M835 380 L835 410"/>
+  <text class="label" x="852" y="402">失败</text>
+
+  <path class="orange" d="M780 195 C740 195, 720 170, 680 170"/>
+  <text class="label" x="690" y="154">继续推进状态</text>
+
+  <path class="orange" d="M780 545 C725 545, 700 610, 640 610"/>
+  <text class="label" x="682" y="590">生成 recovery / policy</text>
+
+  <path class="orange" d="M420 635 C320 635, 220 635, 170 500"/>
+  <text class="label" x="246" y="622">下一轮已不再是冷启动</text>
+
+  <path class="gray" d="M940 300 L1015 300"/>
+  <text class="label" x="956" y="286">不允许自然消失</text>
+</svg>

@@ -1,0 +1,106 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - link "← 返回 Agent 列表" [ref=e4] [cursor=pointer]:
+      - /url: /ui
+    - generic [ref=e5]: 已加载 Agent 详情
+  - generic [ref=e6]:
+    - generic [ref=e7]: Agent 概览
+    - generic [ref=e8]:
+      - generic [ref=e9]: goal-engine-demo · 进行中 · 帮我在上海浦东张江找一个适合5-8人做产品直播或线上课程录制的小型拍摄空间 / initial
+      - generic [ref=e10]:
+        - button "查看帮助" [ref=e11] [cursor=pointer]
+        - button "记录失败" [ref=e12] [cursor=pointer]
+        - button "检查重试" [ref=e13] [cursor=pointer]
+        - button "恢复" [ref=e14] [cursor=pointer]
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: 部分改善：系统已经出现新的 guidance 或可恢复上下文，但行为变化证据还不完整。
+        - generic [ref=e18]: 关键判断建立在 1 条证据事件之上。
+      - generic [ref=e19]: 当前无明显风险 · 下一步：等待更多行为证据
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]: 进化列表
+      - generic [ref=e24]:
+        - heading "关键进化" [level=2] [ref=e25]
+        - generic [ref=e26]:
+          - generic [ref=e27]: 当前指导：还没有指导 · 避免策略：暂无 · 上一轮路径：web_search · 下一轮路径：待定 · 为什么不同：还没有明确行为差异说明 · 最近活跃 2026-04-10T02:55:52.442Z
+          - button "怎么看" [ref=e28] [cursor=pointer]
+      - generic [ref=e29]:
+        - paragraph [ref=e30]: 共记录 51 条进化事件，最近变化集中在1 次恢复。
+        - generic [ref=e31]:
+          - button "全部" [ref=e32] [cursor=pointer]
+          - button "失败" [ref=e33] [cursor=pointer]
+          - button "反思" [ref=e34] [cursor=pointer]
+          - button "策略更新" [ref=e35] [cursor=pointer]
+          - button "重试检查" [ref=e36] [cursor=pointer]
+          - button "恢复" [ref=e37] [cursor=pointer]
+          - button "进展" [ref=e38] [cursor=pointer]
+          - button "投影观察" [ref=e39] [cursor=pointer]
+        - generic [ref=e40]:
+          - article [ref=e41]:
+            - generic [ref=e42]
+            - generic [ref=e45]
+            - generic [ref=e49]: 记录变化
+          - article [ref=e50]:
+            - generic [ref=e51]
+            - generic [ref=e54]
+            - generic [ref=e58]: 恢复上下文
+          - article [ref=e59]:
+            - generic [ref=e60]
+            - generic [ref=e63]
+            - generic [ref=e67]: 记录变化
+          - article [ref=e68]:
+            - generic [ref=e69]
+            - generic [ref=e72]
+            - generic [ref=e76]: 记录变化
+          - article [ref=e77]:
+            - generic [ref=e78]
+            - generic [ref=e81]
+            - generic [ref=e85]: 记录变化
+          - article [ref=e86]:
+            - generic [ref=e87]
+            - generic [ref=e90]
+            - generic [ref=e94]: 记录变化
+          - article [ref=e95]:
+            - generic [ref=e96]
+            - generic [ref=e99]
+            - generic [ref=e103]: 记录变化
+          - article [ref=e104]:
+            - generic [ref=e105]
+            - generic [ref=e108]
+            - generic [ref=e112]: 记录变化
+          - article [ref=e113]:
+            - generic [ref=e114]
+            - generic [ref=e117]
+            - generic [ref=e121]: 记录变化
+          - article [ref=e122]:
+            - generic [ref=e123]
+            - generic [ref=e126]
+            - generic [ref=e130]: 记录变化
+          - article [ref=e131]:
+            - generic [ref=e132]
+            - generic [ref=e135]
+            - generic [ref=e139]: 记录变化
+          - article [ref=e140]:
+            - generic [ref=e141]
+            - generic [ref=e144]
+            - generic [ref=e148]: 记录变化
+        - group [ref=e149]:
+          - generic "查看进化全景" [ref=e150] [cursor=pointer]
+    - group [ref=e151]:
+      - generic "更多信息" [ref=e152] [cursor=pointer]
+    - generic [ref=e153]:
+      - group [ref=e154]:
+        - generic "记录失败" [ref=e155] [cursor=pointer]
+        - option "tool_error"
+        - option "capability_gap"
+        - option "strategy_mismatch"
+        - option "external_blocker"
+        - option "resource_limit"
+        - option "validation_fail"
+        - option "stuck_loop" [selected]
+        - option "ambiguous_goal"
+      - group [ref=e156]:
+        - generic "检查重试" [ref=e157] [cursor=pointer]
+      - group [ref=e158]:
+        - generic "恢复" [ref=e159] [cursor=pointer]

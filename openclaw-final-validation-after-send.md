@@ -1,0 +1,207 @@
+- generic [ref=e64]:
+  - banner [ref=e65]:
+    - generic [ref=e66]:
+      - generic [ref=e70]:
+        - generic [ref=e71]: OpenClaw
+        - generic [ref=e72]: ›
+        - generic [ref=e73]: 聊天
+      - generic [ref=e74]:
+        - button "Open command palette" [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: 搜索
+          - generic [ref=e77]: ⌘K
+        - group "Color mode" [ref=e79]:
+          - 'button "Color mode: System" [pressed] [ref=e80] [cursor=pointer]':
+            - img [ref=e81]
+          - 'button "Color mode: Light" [ref=e83] [cursor=pointer]':
+            - img [ref=e84]
+          - 'button "Color mode: Dark" [ref=e90] [cursor=pointer]':
+            - img [ref=e91]
+  - complementary [ref=e94]:
+    - generic [ref=e95]:
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - img "OpenClaw" [ref=e98]
+          - generic [ref=e99]:
+            - generic [ref=e100]: 控制
+            - generic [ref=e101]: OpenClaw
+        - button "折叠侧边栏" [ref=e102] [cursor=pointer]:
+          - img [ref=e104]
+      - navigation [ref=e108]:
+        - generic [ref=e109]:
+          - button "聊天" [expanded] [ref=e110] [cursor=pointer]:
+            - generic [ref=e111]: 聊天
+            - img [ref=e113]
+          - link "聊天" [ref=e116] [cursor=pointer]:
+            - /url: /chat
+            - img [ref=e118]
+            - generic [ref=e120]: 聊天
+        - generic [ref=e121]:
+          - button "控制" [expanded] [ref=e122] [cursor=pointer]:
+            - generic [ref=e123]: 控制
+            - img [ref=e125]
+          - generic [ref=e127]:
+            - link "概览" [ref=e128] [cursor=pointer]:
+              - /url: /overview
+            - link "频道" [ref=e132] [cursor=pointer]:
+              - /url: /channels
+            - link "实例" [ref=e138] [cursor=pointer]:
+              - /url: /instances
+            - link "会话" [ref=e144] [cursor=pointer]:
+              - /url: /sessions
+            - link "使用情况" [ref=e150] [cursor=pointer]:
+              - /url: /usage
+            - link "定时任务" [ref=e154] [cursor=pointer]:
+              - /url: /cron
+        - generic [ref=e162]:
+          - button "代理" [expanded] [ref=e163] [cursor=pointer]:
+            - generic [ref=e164]: 代理
+            - img [ref=e166]
+          - generic [ref=e168]:
+            - link "代理" [ref=e169] [cursor=pointer]:
+              - /url: /agents
+            - link "技能" [ref=e174] [cursor=pointer]:
+              - /url: /skills
+            - link "节点" [ref=e179] [cursor=pointer]:
+              - /url: /nodes
+            - link "梦境" [ref=e184] [cursor=pointer]:
+              - /url: /dreaming
+        - generic [ref=e189]:
+          - button "设置" [expanded] [ref=e190] [cursor=pointer]:
+            - generic [ref=e191]: 设置
+            - img [ref=e193]
+          - generic [ref=e195]:
+            - link "配置" [ref=e196] [cursor=pointer]:
+              - /url: /config
+            - link "通信" [ref=e202] [cursor=pointer]:
+              - /url: /communications
+            - link "外观与设置" [ref=e208] [cursor=pointer]:
+              - /url: /appearance
+            - link "自动化" [ref=e213] [cursor=pointer]:
+              - /url: /automation
+            - link "基础设施" [ref=e218] [cursor=pointer]:
+              - /url: /infrastructure
+            - link "AI 与代理" [ref=e224] [cursor=pointer]:
+              - /url: /ai-agents
+            - link "调试" [ref=e237] [cursor=pointer]:
+              - /url: /debug
+            - link "日志" [ref=e249] [cursor=pointer]:
+              - /url: /logs
+      - generic [ref=e256]:
+        - link "文档" [ref=e257] [cursor=pointer]:
+          - /url: https://docs.openclaw.ai
+          - img [ref=e259]
+          - generic [ref=e261]: 文档
+          - img [ref=e263]
+        - generic "v2026.4.9" [ref=e266]:
+          - generic [ref=e267]: 版本
+          - generic [ref=e268]: v2026.4.9
+          - 'img "Gateway status: 在线" [ref=e269]'
+  - main [ref=e270]:
+    - generic [ref=e271]:
+      - generic [ref=e273]:
+        - combobox [ref=e275] [cursor=pointer]:
+          - option "goal-engine-demo / main" [selected]
+          - option "heartbeat"
+          - option "feishu:g-oc_07f333525ee77f179583c8ef69db01ac"
+          - option "feishu:g-oc_8fb6586462806af18ea7dbf6f0cf38bd"
+          - option "feishu:direct:ou_20793e016a24231f5b121c887f7c1c1f"
+          - option "p30-survivor-alpha / main"
+          - option "P30 WP3 Autonomy (p30-wp3-autonomy) / main"
+          - option "P30 WP1 Cognition (p30-wp1-cognition) / main"
+          - option "P30 WP2 Plugin (p30-wp2-plugin) / main"
+          - option "P30 OpenClaw Runtime (p30-openclaw-runtime) / main"
+          - option "P30 Autonomy Loop (p30-autonomy-loop) / main"
+          - option "P30 State Architect (p30-state-architect) / main"
+          - option "P30 Event Architect (p30-event-architect) / main"
+          - option "CIO (cio) / 张德阔"
+          - option "feishu:oc_c65e6dd2ace2a49494634d3d6b366c32"
+          - option "feishu:direct:ou_117901f9c093a7fcd0d978dac5d016e8"
+          - option "feishu:g-oc_be070bfe45c1e07cc6d53403ce3055bd"
+          - option "feishu:direct:ou_a75dedd51f0d476de7ecd30d265c5118"
+          - option "📈 运营总监"
+          - option "feishu:direct:ou_9bcf5bd61aa67d89f1ede6f49bf1d235"
+          - option "feishu:direct:ou_cc3cbe2d0b8b3c0e5afac896c94959a5"
+          - option "feishu:direct:ou_c00022e55e1c526ad5d407d0a5521c5c"
+          - option "ou_3ad6df29684ebded5ba3cdbb7535f12a"
+          - option "Backend Developer (backend) / 张德阔"
+          - option "Frontend Developer (frontend) / 张德阔"
+        - combobox "Chat model" [disabled] [ref=e277] [cursor=pointer]:
+          - option "Default (MiniMax-M2.5 · minimax)"
+          - option "MiniMax-M2.5 · minimax" [selected]
+          - option "kimi-k2.5 · moonshot"
+          - option "coder-model · qwen-portal"
+          - option "vision-model · qwen-portal"
+        - combobox "Chat thinking level" [disabled] [ref=e279] [cursor=pointer]:
+          - option "Default (off)" [selected]
+          - option "Off"
+          - option "Minimal"
+          - option "Low"
+          - option "Medium"
+          - option "High"
+          - option "Adaptive"
+      - generic [ref=e281]:
+        - button "刷新聊天数据" [ref=e282] [cursor=pointer]:
+          - img [ref=e283]
+        - generic [ref=e286]: "|"
+        - button "切换助手思考/工作输出" [pressed] [ref=e287] [cursor=pointer]:
+          - img [ref=e288]
+        - button "切换工具调用和工具结果" [pressed] [ref=e298] [cursor=pointer]:
+          - img [ref=e299]
+        - button "切换专注模式 (隐藏侧边栏 + 页面页眉)" [ref=e301] [cursor=pointer]:
+          - img [ref=e302]
+        - button "2" [pressed] [ref=e308] [cursor=pointer]:
+          - generic [ref=e309]:
+            - img [ref=e310]
+            - generic: "2"
+    - generic [ref=e313]:
+      - log [ref=e316]:
+        - generic [ref=e317]:
+          - generic [ref=e318]:
+            - img [ref=e320]
+            - generic [ref=e323]
+          - generic [ref=e331]:
+            - img [ref=e333]
+            - generic [ref=e335]
+          - generic [ref=e394]:
+            - img [ref=e396]
+            - generic [ref=e398]
+          - generic [ref=e412]:
+            - img [ref=e414]
+            - generic [ref=e417]
+          - generic [ref=e425]:
+            - img [ref=e427]
+            - generic [ref=e429]
+          - generic [ref=e967]:
+            - img [ref=e969]
+            - generic [ref=e971]
+          - generic [ref=e1022]:
+            - img [ref=e1024]
+            - generic [ref=e1027]
+          - generic [ref=e1035]:
+            - img [ref=e1037]
+            - generic [ref=e1039]
+          - generic [ref=e1429]:
+            - img [ref=e1431]
+            - generic [ref=e1433]
+          - generic [ref=e1457]:
+            - img [ref=e1459]
+            - generic [ref=e1462]
+          - generic [ref=e1470]:
+            - img [ref=e1472]
+            - generic [ref=e1474]
+          - generic [ref=e1571]:
+            - img [ref=e1573]
+            - generic [ref=e1575]
+          - generic [ref=e1620]:
+            - img [ref=e1622]
+            - generic [ref=e1625]
+          - img [ref=e1635]
+      - generic [ref=e1598]:
+        - textbox "Message Assistant (Enter to send)" [active] [ref=e1599]
+        - generic [ref=e1600]:
+          - generic [ref=e1601]:
+            - button "Attach file" [ref=e1602] [cursor=pointer]
+            - button "Voice input" [ref=e1605] [cursor=pointer]
+          - generic [ref=e1609]:
+            - button "Export chat" [ref=e1612] [cursor=pointer]
+            - button "Stop generating" [ref=e1643] [cursor=pointer]

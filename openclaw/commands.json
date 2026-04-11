@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "description": "Explicit Goal Engine command surface for OpenClaw runtime wiring",
+  "bootstrap": {
+    "command": [
+      "pnpm",
+      "openclaw",
+      "bootstrap",
+      "--agent-id",
+      "<agent-id>",
+      "--agent-name",
+      "<agent-name>",
+      "--workspace",
+      "<workspace>",
+      "--session",
+      "<session>"
+    ],
+    "cwd": "agent-adapter",
+    "produces": "json",
+    "summary": "Choose projection-first status or service-backed recovery for a fresh session"
+  },
+  "entrypoints": {
+    "start goal": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "start goal",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"title\":\"<goal title>\",\"successCriteria\":[\"<success criterion>\"],\"currentStage\":\"<stage>\",\"replaceActiveGoal\":false}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Create a new goal and refresh projection. If an active goal already exists, inspect the conflict summary first; only set replaceActiveGoal=true when you explicitly want to abandon the old goal."
+    },
+    "show goal status": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "show goal status",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"expectedGoalTitle\":\"<current task title>\"}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Read current goal, guidance, and local projection state. When a new external task just arrived, pass expectedGoalTitle first and block execution until the active goal is aligned. If alignment is blocked, do not call web_search, web_fetch, or other external tools until Goal Engine actions resolve it. Once alignment is clear, if web_search is unavailable, use the ready local multi-search-engine skill as the preferred fallback search path."
+    },
+    "record failed attempt": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "record failed attempt",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"stage\":\"<stage>\",\"actionTaken\":\"<what failed>\",\"strategyTags\":[\"<strategy tag>\"],\"failureType\":\"<failure type>\"}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Write failed attempt, reflection, updated guidance, and refreshed projection. Use this immediately after a confirmed blocked path, including fallback-search failure after alignment is already clear."
+    },
+    "recover current goal": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "recover current goal",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Recover current goal and rebuild projection if missing"
+    },
+    "check retry": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "check retry",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"plannedAction\":\"<planned action>\",\"whatChanged\":\"<what changed>\",\"strategyTags\":[\"<strategy tag>\"],\"policyAcknowledged\":true}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Run retry guard and return a user-facing allowed or blocked explanation"
+    }
+  }
+}

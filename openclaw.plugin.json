@@ -1,0 +1,35 @@
+{
+  "id": "goal-engine",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "serviceUrl": {
+        "type": "string",
+        "description": "Goal Engine service base URL, for example http://localhost:3100"
+      },
+      "adapterDir": {
+        "type": "string",
+        "description": "Optional path to the agent-adapter directory used to execute the Goal Engine CLI"
+      },
+      "workspaceStatePath": {
+        "type": "string",
+        "description": "Optional override for .openclaw/workspace-state.json"
+      },
+      "runtimeStatePath": {
+        "type": "string",
+        "description": "Optional override for .openclaw/runtime-state.json"
+      },
+      "runtime": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "preferEnvContext": {
+            "type": "boolean",
+            "description": "Prefer OPENCLAW_* environment variables when runtime context is not passed explicitly"
+          }
+        }
+      }
+    }
+  }
+}
