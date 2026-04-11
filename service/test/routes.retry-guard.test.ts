@@ -67,7 +67,41 @@ describe('POST /api/v1/retry-guard/check', () => {
     expect(res.status).toBe(200);
     const body = await res.json() as { data: { allowed: boolean; reason: string } };
     expect(body.data.allowed).toBe(false);
-    expect(body.data.reason).toBe('blocked_strategy_overlap');
+    expect(body.data.reason).toBe('no_meaningful_change');
+  });
+
+  it('injects knowledge and allows legacy avoid_strategy overlap when the retry has meaningful change', async () => {
+    const res = await app.request('/api/v1/retry-guard/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        planned_action: '重新找来源',
+        what_changed: 'I have a new source list',
+        strategy_tags: ['broad-web-search'],
+        policy_acknowledged: true,
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as {
+      data: {
+        allowed: boolean;
+        reason: string;
+        warnings: string[];
+        advisories: string[];
+        referenced_knowledge_ids: string[];
+      };
+    };
+    expect(body.data.allowed).toBe(true);
+    expect(body.data.reason).toBe('allowed');
+    expect(body.data.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('avoid_strategy')])
+    );
+    expect(body.data.advisories).toEqual(
+      expect.arrayContaining([expect.stringContaining('切换到官方文档')])
+    );
+    expect(body.data.referenced_knowledge_ids.length).toBeGreaterThan(0);
   });
 
   it('returns allowed=true when strategy changed', async () => {
@@ -142,7 +176,7 @@ describe('POST /api/v1/retry-guard/check', () => {
         expect.objectContaining({
           type: 'retry_check',
           summary: '再次搜索',
-          impact: expect.stringContaining('blocked_strategy_overlap'),
+          impact: expect.stringContaining('no_meaningful_change'),
         }),
       ])
     );

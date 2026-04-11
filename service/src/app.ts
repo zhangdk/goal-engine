@@ -45,7 +45,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   const goalAgentAssignmentRepo = new GoalAgentAssignmentRepo(db);
   const knowledgeRepo = new KnowledgeRepo(db);
   const knowledgePromotionRepo = new KnowledgePromotionRepo(db);
-  const _knowledgeReferenceEventRepo = new KnowledgeReferenceEventRepo(db);
+  const knowledgeReferenceEventRepo = new KnowledgeReferenceEventRepo(db);
 
   // Services
   const knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
@@ -61,7 +61,15 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/reflections', reflectionsRouter(policyService, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
-  app.route('/api/v1/retry-guard', retryGuardRouter(goalRepo, policyRepo, attemptRepo, retryHistoryRepo, goalAgentHistoryService));
+  app.route('/api/v1/retry-guard', retryGuardRouter(
+    goalRepo,
+    policyRepo,
+    attemptRepo,
+    retryHistoryRepo,
+    knowledgeService,
+    knowledgeReferenceEventRepo,
+    goalAgentHistoryService
+  ));
   app.route('/api/v1/recovery-packet', recoveryRouter(recoveryService, recoveryEventRepo, goalAgentHistoryService));
   app.route('/api/v1/knowledge', knowledgeRouter(goalRepo, attemptRepo, knowledgeService));
   app.route('/api/v1/health', healthRouter());

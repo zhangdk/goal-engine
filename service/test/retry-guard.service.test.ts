@@ -47,17 +47,38 @@ describe('RetryGuardService — blocks', () => {
     expect(result.reason).toBe('policy_not_acknowledged');
   });
 
-  it('blocks when strategy_tags overlap with avoid_strategies', () => {
+  it('allows avoid strategy overlap but emits advisory context', () => {
     const result = guardService.check({
       policyAcknowledged: true,
       strategyTags: ['broad-web-search'],
-      whatChanged: '换了方向',
+      whatChanged: 'I have a new source list',
       policy: makePolicy(['broad-web-search']),
-      latestFailureAttempt: makeAttempt(['official-docs']),
+      latestFailureAttempt: makeAttempt(['broad-web-search']),
+      knowledgeContext: [
+        {
+          id: 'know_1',
+          agentId: 'agent-a',
+          goalId: 'goal-a',
+          context: 'search stage',
+          observation: 'Broad search returned stale results.',
+          hypothesis: 'Aggregators lag official pages.',
+          implication: 'Check official pages before repeating aggregator search.',
+          relatedStrategyTags: ['broad-web-search'],
+          createdAt: '2026-04-11T00:00:00.000Z',
+        },
+      ],
+      sharedWisdom: [],
     });
 
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toBe('blocked_strategy_overlap');
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe('allowed');
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('avoid_strategy')])
+    );
+    expect(result.advisories).toEqual(
+      expect.arrayContaining([expect.stringContaining('Check official pages')])
+    );
+    expect(result.referencedKnowledgeIds).toEqual(['know_1']);
   });
 
   it('blocks when nothing meaningful changed (empty what_changed)', () => {
