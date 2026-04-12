@@ -407,3 +407,35 @@ OpenClaw 做 skill 发现时不能用 `ls ~/.openclaw/skills` 代替技能注册
 - Related Files: .learnings/LEARNINGS.md, BOOT.md, openclaw/workspace/goal-engine/AGENTS.md, service/src/routes/ui.ts
 - Tags: correction, execution-strategy, closed-loop, validation
 - See Also: LRN-20260410-001
+
+---
+
+## [LRN-20260411-001] plan_whole_task_and_execute_without_drip_feeding
+
+**Logged**: 2026-04-11T13:01:55Z
+**Priority**: critical
+**Status**: pending
+**Area**: product
+
+### Summary
+执行已有实施计划时，不要靠用户反复追问来发现剩余任务；必须先完整读取计划、列出收尾清单，并一次性推进到验证完成。
+
+### Details
+- 用户明确纠正：“不要挤牙膏，一次规划完任务并实施。”
+- 本轮知识系统实现虽然最终完成，但过程中仍暴露出收尾阶段不够主动：
+  - Task 12 的文档、schema probe、API probe、最终 diff hygiene 和 finishing workflow 应在进入收尾时一次性拉出完整 checklist
+  - E2E 暴露旧断言和 runtime-state 污染后，应扩大检查同类残留，而不是只盯单个失败点
+  - 回答“还有未完成任务吗”前，应主动对照计划逐项确认，而不是只依据当前 git/test 状态
+- 后续执行计划时，必须把“计划读取 -> 任务分解 -> 实施 -> 验证 -> 文档 -> 提交 -> finishing option”作为一个完整闭环。
+
+### Suggested Action
+- 接到“按计划执行”时，先读完整计划并形成一次性 checklist，尤其标记 verification/docs/commit/cleanup 收尾项
+- 实施中每完成一个阶段就更新 checklist，避免遗漏隐性任务
+- 出现一个旧语义断言失败时，用 `rg` 扫同类断言并批量修正
+- 最终答复前对照原计划 acceptance criteria，而不只看测试是否通过
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/superpowers/plans/2026-04-11-goal-engine-knowledge-system.md, .learnings/LEARNINGS.md
+- Tags: correction, execution-strategy, planning, closed-loop, verification
+- See Also: LRN-20260410-001, LRN-20260410-002
