@@ -105,7 +105,7 @@ export class KnowledgeService {
     return this.knowledgeRepo.listByTags(agentId, goalId, tags, limit);
   }
 
-  listSharedWisdom(agentId: string, subjects: string[], limit = 20): KnowledgePromotion[] {
-    return this.promotionRepo.listSharedForAgent(agentId, subjects, limit);
+  listSharedWisdom(agentId: string, goalId: string | undefined, subjects: string[], limit = 20): KnowledgePromotion[] {
+    return this.promotionRepo.listSharedForAgent(agentId, goalId, subjects, limit);
   }
 }

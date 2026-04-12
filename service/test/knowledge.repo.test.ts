@@ -108,9 +108,9 @@ describe('KnowledgePromotionRepo', () => {
       updatedAt: nowIso(),
     });
 
-    expect(promotionRepo.listSharedForAgent('agent-a', ['event_search']).map((p) => p.id)).toEqual(
+    expect(promotionRepo.listSharedForAgent('agent-a', 'goal-a', ['event_search']).map((p) => p.id)).toEqual(
       expect.arrayContaining(['promo-agent-a', 'promo-global'])
     );
-    expect(promotionRepo.listSharedForAgent('agent-b', ['event_search']).map((p) => p.id)).toEqual(['promo-global']);
+    expect(promotionRepo.listSharedForAgent('agent-b', 'goal-b', ['event_search']).map((p) => p.id)).toEqual(['promo-global']);
   });
 });

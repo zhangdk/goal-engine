@@ -153,6 +153,83 @@ INSERT INTO attempts VALUES ('a1', 'g1', 'init', 'action', '[]', 'success', NULL
     expect(attemptFks.length).toBeGreaterThan(0);
   });
 
+  it('recreates legacy dependent tables with composite foreign keys', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+CREATE TABLE goals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  success_criteria TEXT NOT NULL,
+  stop_conditions TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  current_stage TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE attempts (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  action_taken TEXT NOT NULL,
+  strategy_tags TEXT NOT NULL,
+  result TEXT NOT NULL,
+  failure_type TEXT,
+  confidence REAL,
+  next_hypothesis TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE reflections (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  root_cause TEXT NOT NULL,
+  must_change TEXT NOT NULL,
+  avoid_strategy TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE policies (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  preferred_next_step TEXT,
+  avoid_strategies TEXT NOT NULL,
+  must_check_before_retry TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE retry_check_events (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  planned_action TEXT NOT NULL,
+  what_changed TEXT NOT NULL,
+  strategy_tags TEXT NOT NULL,
+  policy_acknowledged INTEGER NOT NULL,
+  allowed INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  warnings TEXT NOT NULL,
+  tag_overlap_rate REAL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE recovery_events (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  goal_title TEXT NOT NULL,
+  current_stage TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+`);
+
+    applySchema(db);
+
+    expect(db.prepare(`PRAGMA foreign_key_list(reflections)`).all().length).toBeGreaterThan(0);
+    expect(db.prepare(`PRAGMA foreign_key_list(policies)`).all().length).toBeGreaterThan(0);
+    expect(db.prepare(`PRAGMA foreign_key_list(retry_check_events)`).all().length).toBeGreaterThan(0);
+    expect(db.prepare(`PRAGMA foreign_key_list(recovery_events)`).all().length).toBeGreaterThan(0);
+  });
+
   it('backfills legacy goal data to the default agent and permits per-agent active goals', () => {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');

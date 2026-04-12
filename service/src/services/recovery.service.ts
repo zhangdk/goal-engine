@@ -50,7 +50,7 @@ export class RecoveryService {
     const recentAttempts = this.attemptRepo.listByGoal(agentId, goalId, { limit: 5 });
     const knowledgeTags = latestFailure?.strategyTags ?? recentAttempts.flatMap((attempt) => attempt.strategyTags);
     const relevantKnowledge = this.knowledgeService.listRelevant(agentId, goalId, knowledgeTags, 10);
-    const sharedWisdom = this.knowledgeService.listSharedWisdom(agentId, knowledgeTags, 10);
+    const sharedWisdom = this.knowledgeService.listSharedWisdom(agentId, goalId, knowledgeTags, 10);
 
     return {
       agentId,

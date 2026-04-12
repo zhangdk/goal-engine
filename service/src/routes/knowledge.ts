@@ -87,13 +87,14 @@ export function knowledgeRouter(
 
   router.get('/shared', (c) => {
     const { agentId } = resolveAgentContext(c.req.raw.headers);
+    const goalId = c.req.query('goal_id');
     const subjects = (c.req.query('subjects') ?? '')
       .split(',')
       .map((subject) => subject.trim())
       .filter(Boolean);
     const limitRaw = c.req.query('limit');
     const limit = limitRaw ? Math.min(Math.max(parseInt(limitRaw, 10) || 20, 1), 100) : 20;
-    const promotions = knowledgeService.listSharedWisdom(agentId, subjects, limit);
+    const promotions = knowledgeService.listSharedWisdom(agentId, goalId, subjects, limit);
     return c.json({ data: promotions.map(promotionToSnakeCase), meta: { limit } });
   });
 

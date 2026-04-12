@@ -58,7 +58,7 @@ export function retryGuardRouter(
 
     const latestFailure = attemptRepo.getLatestFailure(agentId, data.goal_id);
     const knowledgeContext = knowledgeService.listRelevant(agentId, data.goal_id, data.strategy_tags, 10);
-    const sharedWisdom = knowledgeService.listSharedWisdom(agentId, data.strategy_tags, 10);
+    const sharedWisdom = knowledgeService.listSharedWisdom(agentId, data.goal_id, data.strategy_tags, 10);
 
     const result = guardService.check({
       policyAcknowledged: data.policy_acknowledged,

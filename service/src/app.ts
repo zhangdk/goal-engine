@@ -83,7 +83,12 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
     knowledgeReferenceEventRepo,
     goalAgentHistoryService
   ));
-  app.route('/api/v1/recovery-packet', recoveryRouter(recoveryService, recoveryEventRepo, goalAgentHistoryService));
+  app.route('/api/v1/recovery-packet', recoveryRouter(
+    recoveryService,
+    recoveryEventRepo,
+    knowledgeReferenceEventRepo,
+    goalAgentHistoryService
+  ));
   app.route('/api/v1/knowledge', knowledgeRouter(goalRepo, attemptRepo, knowledgeService));
   app.route('/api/v1/health', healthRouter());
   app.route('/api/v1/ui', uiApiRouter(goalRepo, attemptRepo, reflectionRepo, policyRepo, retryHistoryRepo, recoveryEventRepo, goalAgentAssignmentRepo, goalAgentHistoryService, recoveryService, {

@@ -89,4 +89,60 @@ describe('knowledge routes', () => {
     expect(wisdomRes.status).toBe(200);
     expect(((await wisdomRes.json()) as { data: Array<{ subject: string }> }).data[0].subject).toBe('event_search');
   });
+
+  it('does not expose private promotions as shared wisdom for another goal', async () => {
+    const firstGoalId = await createGoal('agent-a');
+    const createRes = await app.request('/api/v1/knowledge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: firstGoalId,
+        context: 'first goal search',
+        observation: 'private observation',
+        hypothesis: 'private hypothesis',
+        implication: 'private implication',
+        related_strategy_tags: ['event_search'],
+      }),
+    });
+    const knowledgeId = ((await createRes.json()) as { data: { id: string } }).data.id;
+
+    const promoteRes = await app.request(`/api/v1/knowledge/${knowledgeId}/promotions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        visibility: 'private',
+        subject: 'event_search',
+        condition: { stage: 'search' },
+        summary: 'Private summary',
+        recommendation: 'Private recommendation should stay on the source goal.',
+        confidence: 0.75,
+      }),
+    });
+    expect(promoteRes.status).toBe(201);
+
+    await app.request(`/api/v1/goals/${firstGoalId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({ status: 'completed' }),
+    });
+    const secondGoalId = await createGoal('agent-a');
+
+    const sameGoalWisdomRes = await app.request(
+      `/api/v1/knowledge/shared?goal_id=${firstGoalId}&subjects=event_search`,
+      { headers: { 'X-Agent-Id': 'agent-a' } }
+    );
+    expect(sameGoalWisdomRes.status).toBe(200);
+    expect(((await sameGoalWisdomRes.json()) as { data: Array<{ visibility: string }> }).data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ visibility: 'private' }),
+      ])
+    );
+
+    const otherGoalWisdomRes = await app.request(
+      `/api/v1/knowledge/shared?goal_id=${secondGoalId}&subjects=event_search`,
+      { headers: { 'X-Agent-Id': 'agent-a' } }
+    );
+    expect(otherGoalWisdomRes.status).toBe(200);
+    expect(((await otherGoalWisdomRes.json()) as { data: Array<{ visibility: string }> }).data).toEqual([]);
+  });
 });

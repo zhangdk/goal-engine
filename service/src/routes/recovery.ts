@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import type { RecoveryService } from '../services/recovery.service.js';
 import type { RecoveryEventRepo } from '../repos/recovery-event.repo.js';
+import type { KnowledgeReferenceEventRepo } from '../repos/knowledge-reference-event.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
 import type { RecoveryPacketCurrentPolicy, RecoveryPacketRecentAttempt } from '../../../shared/types.js';
 import { knowledgeToSnakeCase, promotionToSnakeCase } from './knowledge.js';
@@ -10,6 +11,7 @@ import { resolveAgentContext } from '../agent-context.js';
 export function recoveryRouter(
   recoveryService: RecoveryService,
   recoveryEventRepo: RecoveryEventRepo,
+  knowledgeReferenceEventRepo: KnowledgeReferenceEventRepo,
   goalAgentHistoryService: GoalAgentHistoryService
 ): Hono {
   const router = new Hono();
@@ -39,6 +41,15 @@ export function recoveryRouter(
         createdAt: packet.generatedAt,
       });
       goalAgentHistoryService.touchGoal(packet.goalId, 'recovery', packet.generatedAt, agentId);
+      knowledgeReferenceEventRepo.create({
+        id: randomUUID(),
+        agentId,
+        goalId: packet.goalId,
+        knowledgeIds: packet.relevantKnowledge.map((knowledge) => knowledge.id),
+        promotionIds: packet.sharedWisdom.map((promotion) => promotion.id),
+        decisionSurface: 'recovery_packet',
+        createdAt: packet.generatedAt,
+      });
     } catch {
       // Side effects (event logging, history touch) should not block recovery packet delivery
     }

@@ -18,6 +18,7 @@ import { recoveryPacketGet } from '../src/tools/recovery-packet-get.js';
 import { policyGetCurrent } from '../src/tools/policy-get-current.js';
 import { reflectionCreate } from '../src/tools/reflection-create.js';
 import { knowledgeCreate } from '../src/tools/knowledge-create.js';
+import { knowledgeCreate as publicKnowledgeCreate } from '../src/index.js';
 
 // ─── Mock fetch ───────────────────────────────────────────────────────────────
 
@@ -233,6 +234,10 @@ describe('reflectionCreate', () => {
 });
 
 describe('knowledgeCreate', () => {
+  it('is exported from the public adapter entrypoint', () => {
+    expect(publicKnowledgeCreate).toBe(knowledgeCreate);
+  });
+
   it('serializes explicit knowledge creation and maps response to camelCase', async () => {
     const fetch = mockFetch(201, {
       data: {

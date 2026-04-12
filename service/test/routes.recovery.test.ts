@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import type Database from 'better-sqlite3';
 import { makeTestDb } from './helpers.js';
 import { createApp } from '../src/app.js';
+import { KnowledgeReferenceEventRepo } from '../src/repos/knowledge-reference-event.repo.js';
 
 let app: ReturnType<typeof createApp>;
 let goalId: string;
+let db: Database.Database;
 
 beforeEach(async () => {
-  const db = makeTestDb();
+  db = makeTestDb();
   app = createApp(db);
 });
 
@@ -125,6 +128,16 @@ describe('GET /api/v1/recovery-packet', () => {
     );
     expect(body.data.shared_wisdom).toEqual([]);
     expect(body.data.open_questions.length).toBeGreaterThan(0);
+
+    const referenceRepo = new KnowledgeReferenceEventRepo(db);
+    expect(referenceRepo.listByGoal('goal-engine-demo', goalId)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          decisionSurface: 'recovery_packet',
+          knowledgeIds: expect.any(Array),
+        }),
+      ])
+    );
   });
 
   it('does not recover another agent goal by id', async () => {

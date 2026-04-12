@@ -76,22 +76,27 @@ export class KnowledgePromotionRepo {
     return row ? rowToPromotion(row) : null;
   }
 
-  listSharedForAgent(agentId: string, subjects: string[] = [], limit = 20): KnowledgePromotion[] {
+  listSharedForAgent(agentId: string, goalId?: string, subjects: string[] = [], limit = 20): KnowledgePromotion[] {
     const clauses = [
-      `(visibility = 'global' OR (agent_id = ? AND visibility IN ('private', 'agent')))`,
+      `(
+        p.visibility = 'global'
+        OR (p.agent_id = ? AND p.visibility = 'agent')
+        OR (p.agent_id = ? AND p.visibility = 'private' AND k.goal_id = ?)
+      )`,
     ];
-    const params: Array<string | number> = [agentId];
+    const params: Array<string | number> = [agentId, agentId, goalId ?? ''];
 
     if (subjects.length > 0) {
-      clauses.push(`subject IN (${subjects.map(() => '?').join(', ')})`);
+      clauses.push(`p.subject IN (${subjects.map(() => '?').join(', ')})`);
       params.push(...subjects);
     }
 
     params.push(Math.min(Math.max(limit, 1), 100));
     const rows = this.db.prepare(`
-      SELECT * FROM knowledge_promotions
+      SELECT p.* FROM knowledge_promotions p
+      JOIN knowledge k ON k.id = p.knowledge_id
       WHERE ${clauses.join(' AND ')}
-      ORDER BY updated_at DESC
+      ORDER BY p.updated_at DESC
       LIMIT ?
     `).all(...params) as KnowledgePromotionRow[];
     return rows.map(rowToPromotion);

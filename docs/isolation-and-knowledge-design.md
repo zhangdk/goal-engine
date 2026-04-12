@@ -394,24 +394,24 @@ Agent 可以：
 
 ### v0.1：止血 + 基础设施
 
-- [ ] 给所有表加 `agent_id` 字段
-- [ ] 加 composite FK 约束
-- [ ] 实现 `X-Agent-Id` header 验证
-- [ ] 现有 `avoid_strategies` 保留，向后兼容
+- [x] 给所有表加 `agent_id` 字段
+- [x] 加 composite FK 约束
+- [x] 实现 `X-Agent-Id` header 验证
+- [x] 现有 `avoid_strategies` 保留，向后兼容
 
 ### v0.2：认知系统上线
 
-- [ ] 新增 `knowledge` 表
-- [ ] 新增 `knowledge_promotions` 表
-- [ ] 实现 knowledge 创建 API
-- [ ] Recovery Packet 包含 `relevant_knowledge`
-- [ ] Retry Guard 从阻断改为注入
+- [x] 新增 `knowledge` 表
+- [x] 新增 `knowledge_promotions` 表
+- [x] 实现 knowledge 创建 API
+- [x] Recovery Packet 包含 `relevant_knowledge`
+- [x] Retry Guard 从阻断改为注入
 
 ### v0.3：共享与晋升
 
-- [ ] 实现 knowledge promotion 流程（agent 级自动晋升）
-- [ ] 实现 global 晋升审核端点
-- [ ] 实现 `shared_wisdom` 读取
+- [x] 实现 knowledge promotion 流程（显式 API 晋升；不自动晋升）
+- [x] 实现 global 晋升审核约束（`reviewed: true` 服务端门禁；审核 UI 仍是未来工作）
+- [x] 实现 `shared_wisdom` 读取
 - [ ] 逐步废弃 `avoid_strategies`（向后兼容过渡期）
 
 ### v1.0：完整认知系统
