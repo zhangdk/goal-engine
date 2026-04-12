@@ -4,12 +4,18 @@ import { makeTestDb, testId, nowIso } from './helpers.js';
 import { GoalRepo } from '../src/repos/goal.repo.js';
 import { AttemptRepo } from '../src/repos/attempt.repo.js';
 import { PolicyRepo } from '../src/repos/policy.repo.js';
+import { KnowledgeRepo } from '../src/repos/knowledge.repo.js';
+import { KnowledgePromotionRepo } from '../src/repos/knowledge-promotion.repo.js';
 import { RecoveryService } from '../src/services/recovery.service.js';
+import { KnowledgeService } from '../src/services/knowledge.service.js';
 
 let db: Database.Database;
 let goalRepo: GoalRepo;
 let attemptRepo: AttemptRepo;
 let policyRepo: PolicyRepo;
+let knowledgeRepo: KnowledgeRepo;
+let knowledgePromotionRepo: KnowledgePromotionRepo;
+let knowledgeService: KnowledgeService;
 let recoveryService: RecoveryService;
 
 beforeEach(() => {
@@ -17,7 +23,10 @@ beforeEach(() => {
   goalRepo = new GoalRepo(db);
   attemptRepo = new AttemptRepo(db);
   policyRepo = new PolicyRepo(db);
-  recoveryService = new RecoveryService(goalRepo, attemptRepo, policyRepo);
+  knowledgeRepo = new KnowledgeRepo(db);
+  knowledgePromotionRepo = new KnowledgePromotionRepo(db);
+  knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
+  recoveryService = new RecoveryService(goalRepo, attemptRepo, policyRepo, knowledgeService);
 });
 
 /** 创建 active goal */
@@ -174,6 +183,69 @@ describe('RecoveryService', () => {
 
     const packet = recoveryService.build(goalId)!;
     expect(packet.lastMeaningfulProgress).toBeUndefined();
+  });
+
+  it('includes recent attempts, relevant knowledge, and shared wisdom', () => {
+    const goalId = createGoal();
+
+    attemptRepo.create({
+      id: 'attempt-a',
+      goalId,
+      stage: 'search',
+      actionTaken: 'Used broad aggregator search',
+      strategyTags: ['event_search'],
+      result: 'failure',
+      failureType: 'tool_error',
+      createdAt: nowIso(),
+    });
+
+    knowledgeRepo.create({
+      id: 'know-a',
+      agentId: 'goal-engine-demo',
+      goalId,
+      sourceAttemptId: 'attempt-a',
+      context: 'search stage',
+      observation: 'Aggregator result was stale.',
+      hypothesis: 'Third-party pages lag organizer pages.',
+      implication: 'Check official organizer pages.',
+      relatedStrategyTags: ['event_search'],
+      createdAt: nowIso(),
+    });
+
+    knowledgePromotionRepo.create({
+      id: 'promo-a',
+      knowledgeId: 'know-a',
+      visibility: 'global',
+      subject: 'event_search',
+      condition: {},
+      summary: 'Prefer official sources for events.',
+      recommendation: 'Check organizer pages.',
+      confidence: 0.8,
+      supportCount: 1,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+
+    const packet = recoveryService.build('goal-engine-demo', goalId);
+
+    expect(packet?.recentAttempts[0]).toEqual(
+      expect.objectContaining({
+        actionTaken: 'Used broad aggregator search',
+        result: 'failure',
+      })
+    );
+    expect(packet?.relevantKnowledge[0]).toEqual(
+      expect.objectContaining({
+        observation: 'Aggregator result was stale.',
+        implication: 'Check official organizer pages.',
+      })
+    );
+    expect(packet?.sharedWisdom[0]).toEqual(
+      expect.objectContaining({
+        visibility: 'global',
+        subject: 'event_search',
+      })
+    );
   });
 
   it('returns null when goal does not exist', () => {

@@ -7,7 +7,7 @@
  *   │   └── BLOCK: policy_not_acknowledged
  *   │
  *   ├─ strategy_tags ∩ avoid_strategies ≠ ∅?
- *   │   └── BLOCK: blocked_strategy_overlap
+ *   │   └── WARN: legacy avoid_strategy overlap; not a hard block
  *   │
  *   ├─ 无 latestFailureAttempt?
  *   │   └── ALLOW: allowed（无历史参照）
@@ -26,7 +26,7 @@
  *   新搜索/new search、外部帮助/external help
  */
 
-import type { Attempt, Policy, RetryGuardReason, RetryGuardResult } from '../../../shared/types.js';
+import type { Attempt, Knowledge, KnowledgePromotion, Policy, RetryGuardResult } from '../../../shared/types.js';
 
 export type RetryGuardCheckInput = {
   policyAcknowledged: boolean;
@@ -36,6 +36,8 @@ export type RetryGuardCheckInput = {
   latestFailureAttempt: Attempt | null;
   /** 可选：连续同类失败类型，用于 repeated_failure_without_downgrade 检测 */
   consecutiveFailureType?: string;
+  knowledgeContext?: Knowledge[];
+  sharedWisdom?: KnowledgePromotion[];
 };
 
 /** whatChanged 中代表明确变化的关键词（中英双语）。 */
@@ -44,6 +46,7 @@ const MEANINGFUL_CHANGE_KEYWORDS = [
   '新工具', 'new tool', '切换到新工具', '替代',
   '新输入', '新输入材料', 'new input', 'new material', '引入了',
   '新搜索路径', 'new search path', '切换到新搜索',
+  'new source', 'source list', '官方来源', 'official source',
   '外部帮助', 'external help', '请求帮助', '向', '咨询',
 ];
 
@@ -87,22 +90,41 @@ export class RetryGuardService {
     } = input;
 
     const warnings: string[] = [];
+    const knowledgeContext = input.knowledgeContext ?? [];
+    const sharedWisdom = input.sharedWisdom ?? [];
+    const advisories = [
+      ...knowledgeContext.map((knowledge) => knowledge.implication),
+      ...sharedWisdom.map((wisdom) => wisdom.recommendation),
+    ].filter(Boolean);
+    const referencedKnowledgeIds = knowledgeContext.map((knowledge) => knowledge.id);
+
+    const withContext = (
+      result: Omit<RetryGuardResult, 'warnings' | 'advisories' | 'knowledgeContext' | 'referencedKnowledgeIds'> & {
+        warnings?: string[];
+      }
+    ): RetryGuardResult => ({
+      ...result,
+      warnings: result.warnings ?? warnings,
+      advisories,
+      knowledgeContext,
+      referencedKnowledgeIds,
+    });
 
     // 1. policy 必须已确认
     if (!policyAcknowledged) {
-      return { allowed: false, reason: 'policy_not_acknowledged', warnings };
+      return withContext({ allowed: false, reason: 'policy_not_acknowledged' });
     }
 
-    // 2. strategy_tags 不能命中 avoid_strategies
+    // 2. legacy avoid_strategy overlap is advisory context, not a hard block.
     const avoidSet = new Set(policy.avoidStrategies);
     const hasOverlap = strategyTags.some(t => avoidSet.has(t));
     if (hasOverlap) {
-      return { allowed: false, reason: 'blocked_strategy_overlap', warnings };
+      warnings.push('Strategy overlaps legacy avoid_strategy; treat this as risk context, not a hard block.');
     }
 
     // 3. 若无历史失败参照，直接允许
     if (!latestFailureAttempt) {
-      return { allowed: true, reason: 'allowed', warnings };
+      return withContext({ allowed: true, reason: 'allowed' });
     }
 
     const priorTags = latestFailureAttempt.strategyTags;
@@ -114,40 +136,36 @@ export class RetryGuardService {
     // 4. 连续同类失败检查（优先于 tag 相似度检查）：
     //    若 consecutiveFailureType 存在且无降维信号 → repeated_failure_without_downgrade
     if (input.consecutiveFailureType && !hasNewTag && !meaningfulChange) {
-      return {
+      return withContext({
         allowed: false,
         reason: 'repeated_failure_without_downgrade',
-        warnings,
         tagOverlapRate: overlapRate,
-      };
+      });
     }
 
     // 5. 高度相似（完全相同 or overlap >= 0.7）且无明确变化 → no_meaningful_change
     if (isHighlySimilar(strategyTags, priorTags, whatChanged) && !hasNewTag && !meaningfulChange) {
-      return {
+      return withContext({
         allowed: false,
         reason: 'no_meaningful_change',
-        warnings,
         tagOverlapRate: overlapRate,
-      };
+      });
     }
 
     // 6. 有新 tag 或明确变化 → 允许
     if (hasNewTag || meaningfulChange) {
-      return {
+      return withContext({
         allowed: true,
         reason: 'allowed',
-        warnings,
         tagOverlapRate: overlapRate,
-      };
+      });
     }
 
     // 7. 默认允许
-    return {
+    return withContext({
       allowed: true,
       reason: 'allowed',
-      warnings,
       tagOverlapRate: overlapRate,
-    };
+    });
   }
 }

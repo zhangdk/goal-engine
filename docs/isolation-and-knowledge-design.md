@@ -1,9 +1,9 @@
 # Goal Engine 数据隔离与认知架构设计方案
 
-> 状态：待评审  
+> 状态：已实施
 > 日期：2026-04-11  
 > 来源：Claude Code + Gemini + Codex 三方协作分析  
-> 版本：v0.1-draft
+> 版本：v0.2-implemented
 
 ---
 
@@ -38,6 +38,26 @@ Goal Engine v0 存在两个深层问题：
 - 旧经验作为知识保留，不丢失
 - 但不阻断任何动作，不造成约束
 - Agent 带着更丰富的理解进入新会话，自己判断哪些旧认知仍适用
+
+---
+
+## 2026-04-11 实施状态
+
+本设计已在 service、agent-adapter 和观察台 UI 中落地。实现保留 `avoid_strategy` / `avoid_strategies` 作为兼容字段，但 retry guard 不再因为命中 `avoid_strategy` 直接硬阻断；命中旧禁令时返回 warning/advisory，硬阻断只来自可解释执行门：
+
+- `policy_not_acknowledged`
+- `no_meaningful_change`
+- `repeated_failure_without_downgrade`
+
+已落地能力：
+
+- 所有核心事实表带 `agent_id`，并通过 `(agent_id, goal_id)` / `(agent_id, attempt_id)` 复合外键防止跨 Agent 读取。
+- 新增 `knowledge`、`knowledge_promotions`、`knowledge_reference_events` 三张表。
+- reflection 提交后会从失败 attempt 和反思内容派生 descriptive knowledge。
+- recovery packet 返回 `current_policy`、`recent_attempts`、`relevant_knowledge`、`shared_wisdom`、`open_questions`。
+- retry guard 读取相关 knowledge/shared wisdom，把上下文作为 advisory 返回，并持久化 knowledge reference event。
+- OpenClaw 展示层在 `show goal status`、`recover current goal`、`check retry` 中注入历史认知和共享建议。
+- UI detail 页新增 knowledge timeline/detail evidence，便于观察 Agent 如何使用认知。
 
 ---
 
@@ -374,24 +394,24 @@ Agent 可以：
 
 ### v0.1：止血 + 基础设施
 
-- [ ] 给所有表加 `agent_id` 字段
-- [ ] 加 composite FK 约束
-- [ ] 实现 `X-Agent-Id` header 验证
-- [ ] 现有 `avoid_strategies` 保留，向后兼容
+- [x] 给所有表加 `agent_id` 字段
+- [x] 加 composite FK 约束
+- [x] 实现 `X-Agent-Id` header 验证
+- [x] 现有 `avoid_strategies` 保留，向后兼容
 
 ### v0.2：认知系统上线
 
-- [ ] 新增 `knowledge` 表
-- [ ] 新增 `knowledge_promotions` 表
-- [ ] 实现 knowledge 创建 API
-- [ ] Recovery Packet 包含 `relevant_knowledge`
-- [ ] Retry Guard 从阻断改为注入
+- [x] 新增 `knowledge` 表
+- [x] 新增 `knowledge_promotions` 表
+- [x] 实现 knowledge 创建 API
+- [x] Recovery Packet 包含 `relevant_knowledge`
+- [x] Retry Guard 从阻断改为注入
 
 ### v0.3：共享与晋升
 
-- [ ] 实现 knowledge promotion 流程（agent 级自动晋升）
-- [ ] 实现 global 晋升审核端点
-- [ ] 实现 `shared_wisdom` 读取
+- [x] 实现 knowledge promotion 流程（显式 API 晋升；不自动晋升）
+- [x] 实现 global 晋升审核约束（`reviewed: true` 服务端门禁；审核 UI 仍是未来工作）
+- [x] 实现 `shared_wisdom` 读取
 - [ ] 逐步废弃 `avoid_strategies`（向后兼容过渡期）
 
 ### v1.0：完整认知系统

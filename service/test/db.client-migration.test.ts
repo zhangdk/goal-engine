@@ -35,6 +35,201 @@ function makeRuntimeState(agent: { agentId: string; agentName: string; workspace
 }
 
 describe('db schema migration', () => {
+  it('creates knowledge and promotion tables with agent-scoped constraints', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+
+    applySchema(db);
+
+    const knowledgeColumns = db.prepare(`PRAGMA table_info(knowledge)`).all() as Array<{ name: string }>;
+    expect(knowledgeColumns.map((c) => c.name)).toEqual(
+      expect.arrayContaining([
+        'id',
+        'agent_id',
+        'goal_id',
+        'source_attempt_id',
+        'context',
+        'observation',
+        'hypothesis',
+        'implication',
+        'related_strategy_tags',
+        'created_at',
+      ])
+    );
+
+    const promotionColumns = db.prepare(`PRAGMA table_info(knowledge_promotions)`).all() as Array<{ name: string }>;
+    expect(promotionColumns.map((c) => c.name)).toEqual(
+      expect.arrayContaining([
+        'id',
+        'knowledge_id',
+        'visibility',
+        'agent_id',
+        'subject',
+        'condition',
+        'summary',
+        'recommendation',
+        'confidence',
+        'support_count',
+        'created_at',
+        'updated_at',
+      ])
+    );
+
+    const knowledgeFk = db.prepare(`PRAGMA foreign_key_list(knowledge)`).all();
+    expect(knowledgeFk.length).toBeGreaterThan(0);
+  });
+
+  it('enforces promotion visibility agent rule', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    applySchema(db);
+
+    expect(() => db.prepare(`
+      INSERT INTO knowledge_promotions (
+        id,
+        knowledge_id,
+        visibility,
+        agent_id,
+        subject,
+        condition,
+        summary,
+        recommendation,
+        confidence,
+        support_count,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        'bad_private',
+        'missing_knowledge',
+        'private',
+        NULL,
+        'event_search',
+        '{}',
+        'summary',
+        'recommendation',
+        0.5,
+        1,
+        '2026-04-11T00:00:00.000Z',
+        '2026-04-11T00:00:00.000Z'
+      )
+    `).run()).toThrow();
+  });
+
+  it('recreates legacy attempts table with composite foreign keys', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+CREATE TABLE goals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  success_criteria TEXT NOT NULL,
+  stop_conditions TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  current_stage TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE attempts (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  action_taken TEXT NOT NULL,
+  strategy_tags TEXT NOT NULL,
+  result TEXT NOT NULL,
+  failure_type TEXT,
+  confidence REAL,
+  next_hypothesis TEXT,
+  created_at TEXT NOT NULL
+);
+INSERT INTO goals VALUES ('g1', 'Goal', 'active', '[]', '[]', 1, 'init', 't', 't');
+INSERT INTO attempts VALUES ('a1', 'g1', 'init', 'action', '[]', 'success', NULL, NULL, NULL, 't');
+`);
+
+    applySchema(db);
+
+    const attemptFks = db.prepare(`PRAGMA foreign_key_list(attempts)`).all();
+    expect(attemptFks.length).toBeGreaterThan(0);
+  });
+
+  it('recreates legacy dependent tables with composite foreign keys', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+CREATE TABLE goals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  success_criteria TEXT NOT NULL,
+  stop_conditions TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  current_stage TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE attempts (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  action_taken TEXT NOT NULL,
+  strategy_tags TEXT NOT NULL,
+  result TEXT NOT NULL,
+  failure_type TEXT,
+  confidence REAL,
+  next_hypothesis TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE reflections (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  root_cause TEXT NOT NULL,
+  must_change TEXT NOT NULL,
+  avoid_strategy TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE policies (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  preferred_next_step TEXT,
+  avoid_strategies TEXT NOT NULL,
+  must_check_before_retry TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE retry_check_events (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  planned_action TEXT NOT NULL,
+  what_changed TEXT NOT NULL,
+  strategy_tags TEXT NOT NULL,
+  policy_acknowledged INTEGER NOT NULL,
+  allowed INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  warnings TEXT NOT NULL,
+  tag_overlap_rate REAL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE recovery_events (
+  id TEXT PRIMARY KEY,
+  goal_id TEXT NOT NULL,
+  goal_title TEXT NOT NULL,
+  current_stage TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+`);
+
+    applySchema(db);
+
+    expect(db.prepare(`PRAGMA foreign_key_list(reflections)`).all().length).toBeGreaterThan(0);
+    expect(db.prepare(`PRAGMA foreign_key_list(policies)`).all().length).toBeGreaterThan(0);
+    expect(db.prepare(`PRAGMA foreign_key_list(retry_check_events)`).all().length).toBeGreaterThan(0);
+    expect(db.prepare(`PRAGMA foreign_key_list(recovery_events)`).all().length).toBeGreaterThan(0);
+  });
+
   it('backfills legacy goal data to the default agent and permits per-agent active goals', () => {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');

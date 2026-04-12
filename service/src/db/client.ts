@@ -26,6 +26,87 @@ CREATE INDEX IF NOT EXISTS idx_goal_agent_assignments_agent_id_assigned_at
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goal_agent_assignments_one_open_per_goal
   ON goal_agent_assignments(goal_id)
   WHERE released_at IS NULL;`;
+const ATTEMPTS_TABLE_SQL = `
+CREATE TABLE attempts (
+  id             TEXT PRIMARY KEY,
+  agent_id       TEXT NOT NULL REFERENCES agents(id),
+  goal_id        TEXT NOT NULL,
+  stage          TEXT NOT NULL,
+  action_taken   TEXT NOT NULL,
+  strategy_tags  TEXT NOT NULL DEFAULT '[]',
+  result         TEXT NOT NULL CHECK(result IN ('success','partial','failure')),
+  failure_type   TEXT CHECK(failure_type IN (
+    'tool_error','capability_gap','strategy_mismatch','external_blocker',
+    'resource_limit','validation_fail','stuck_loop','ambiguous_goal'
+  )),
+  confidence     REAL,
+  next_hypothesis TEXT,
+  created_at     TEXT NOT NULL,
+  CHECK(result != 'failure' OR failure_type IS NOT NULL),
+  UNIQUE(agent_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);`;
+const REFLECTIONS_TABLE_SQL = `
+CREATE TABLE reflections (
+  id              TEXT PRIMARY KEY,
+  agent_id        TEXT NOT NULL REFERENCES agents(id),
+  goal_id         TEXT NOT NULL,
+  attempt_id      TEXT NOT NULL,
+  summary         TEXT NOT NULL,
+  root_cause      TEXT NOT NULL,
+  must_change     TEXT NOT NULL,
+  avoid_strategy  TEXT,
+  created_at      TEXT NOT NULL,
+  UNIQUE(agent_id, attempt_id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE,
+  FOREIGN KEY(agent_id, attempt_id) REFERENCES attempts(agent_id, id) ON DELETE CASCADE
+);`;
+const POLICIES_TABLE_SQL = `
+CREATE TABLE policies (
+  id                    TEXT PRIMARY KEY,
+  agent_id              TEXT NOT NULL REFERENCES agents(id),
+  goal_id               TEXT NOT NULL,
+  preferred_next_step   TEXT,
+  avoid_strategies      TEXT NOT NULL DEFAULT '[]',
+  must_check_before_retry TEXT NOT NULL DEFAULT '[]',
+  updated_at            TEXT NOT NULL,
+  UNIQUE(agent_id, goal_id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);`;
+const RETRY_CHECK_EVENTS_TABLE_SQL = `
+CREATE TABLE retry_check_events (
+  id                  TEXT PRIMARY KEY,
+  agent_id            TEXT NOT NULL REFERENCES agents(id),
+  goal_id             TEXT NOT NULL,
+  planned_action      TEXT NOT NULL,
+  what_changed        TEXT NOT NULL DEFAULT '',
+  strategy_tags       TEXT NOT NULL DEFAULT '[]',
+  policy_acknowledged INTEGER NOT NULL CHECK(policy_acknowledged IN (0, 1)),
+  allowed             INTEGER NOT NULL CHECK(allowed IN (0, 1)),
+  reason              TEXT NOT NULL CHECK(reason IN (
+    'allowed',
+    'policy_not_acknowledged',
+    'blocked_strategy_overlap',
+    'no_meaningful_change',
+    'repeated_failure_without_downgrade'
+  )),
+  warnings            TEXT NOT NULL DEFAULT '[]',
+  tag_overlap_rate    REAL,
+  created_at          TEXT NOT NULL,
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);`;
+const RECOVERY_EVENTS_TABLE_SQL = `
+CREATE TABLE recovery_events (
+  id            TEXT PRIMARY KEY,
+  agent_id      TEXT NOT NULL REFERENCES agents(id),
+  goal_id       TEXT NOT NULL,
+  goal_title    TEXT NOT NULL,
+  current_stage TEXT NOT NULL,
+  summary       TEXT NOT NULL,
+  source        TEXT NOT NULL CHECK(source IN ('service', 'projection')),
+  created_at    TEXT NOT NULL,
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);`;
 
 function migrateGoalAgentAssignmentsIfNeeded(db: Database.Database): void {
   const row = db.prepare(
@@ -96,6 +177,10 @@ function tableExists(db: Database.Database, table: string): boolean {
   return row !== undefined;
 }
 
+function foreignKeyCount(db: Database.Database, table: string): number {
+  return (db.prepare(`PRAGMA foreign_key_list(${table})`).all() as unknown[]).length;
+}
+
 function ensureAgentsTable(db: Database.Database): void {
   db.exec(`
 CREATE TABLE IF NOT EXISTS agents (
@@ -140,10 +225,14 @@ function migrateAgentIsolationColumnsIfNeeded(db: Database.Database): void {
 function migrateAgentIsolationIndexesIfNeeded(db: Database.Database): void {
   db.exec(`
 DROP INDEX IF EXISTS idx_goals_single_active;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
+  ON goals(agent_id, id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_one_active_per_agent
   ON goals(agent_id) WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS idx_goals_agent_status
   ON goals(agent_id, status, updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_agent_id_id
+  ON attempts(agent_id, id);
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
   ON attempts(agent_id, goal_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reflections_agent_goal_created
@@ -157,6 +246,280 @@ CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
 `);
 }
 
+function migrateAttemptsCompositeForeignKeyIfNeeded(db: Database.Database): void {
+  if (!tableExists(db, 'attempts') || foreignKeyCount(db, 'attempts') > 0) {
+    return;
+  }
+
+  const columns = tableColumns(db, 'attempts');
+  const hasRequiredColumns = [
+    'id',
+    'agent_id',
+    'goal_id',
+    'stage',
+    'action_taken',
+    'strategy_tags',
+    'result',
+    'failure_type',
+    'confidence',
+    'next_hypothesis',
+    'created_at',
+  ].every((column) => columns.has(column));
+  if (!hasRequiredColumns) {
+    return;
+  }
+
+  db.exec(`
+CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
+  ON goals(agent_id, id);
+DROP INDEX IF EXISTS idx_attempts_agent_goal_created;
+DROP INDEX IF EXISTS idx_attempts_created_at;
+ALTER TABLE attempts RENAME TO attempts_legacy;
+${ATTEMPTS_TABLE_SQL}
+INSERT INTO attempts (
+  id,
+  agent_id,
+  goal_id,
+  stage,
+  action_taken,
+  strategy_tags,
+  result,
+  failure_type,
+  confidence,
+  next_hypothesis,
+  created_at
+)
+SELECT
+  id,
+  agent_id,
+  goal_id,
+  stage,
+  action_taken,
+  strategy_tags,
+  result,
+  failure_type,
+  confidence,
+  next_hypothesis,
+  created_at
+FROM attempts_legacy;
+DROP TABLE attempts_legacy;
+CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
+  ON attempts(agent_id, goal_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_attempts_created_at
+  ON attempts(created_at);
+`);
+}
+
+function migrateReflectionsCompositeForeignKeyIfNeeded(db: Database.Database): void {
+  if (!tableExists(db, 'reflections') || foreignKeyCount(db, 'reflections') > 0) {
+    return;
+  }
+
+  const columns = tableColumns(db, 'reflections');
+  const hasRequiredColumns = [
+    'id',
+    'agent_id',
+    'goal_id',
+    'attempt_id',
+    'summary',
+    'root_cause',
+    'must_change',
+    'avoid_strategy',
+    'created_at',
+  ].every((column) => columns.has(column));
+  if (!hasRequiredColumns) {
+    return;
+  }
+
+  db.exec(`
+DROP INDEX IF EXISTS idx_reflections_agent_goal_created;
+ALTER TABLE reflections RENAME TO reflections_legacy;
+${REFLECTIONS_TABLE_SQL}
+INSERT INTO reflections (
+  id,
+  agent_id,
+  goal_id,
+  attempt_id,
+  summary,
+  root_cause,
+  must_change,
+  avoid_strategy,
+  created_at
+)
+SELECT
+  id,
+  agent_id,
+  goal_id,
+  attempt_id,
+  summary,
+  root_cause,
+  must_change,
+  avoid_strategy,
+  created_at
+FROM reflections_legacy;
+DROP TABLE reflections_legacy;
+CREATE INDEX IF NOT EXISTS idx_reflections_agent_goal_created
+  ON reflections(agent_id, goal_id, created_at DESC);
+`);
+}
+
+function migratePoliciesCompositeForeignKeyIfNeeded(db: Database.Database): void {
+  if (!tableExists(db, 'policies') || foreignKeyCount(db, 'policies') > 0) {
+    return;
+  }
+
+  const columns = tableColumns(db, 'policies');
+  const hasRequiredColumns = [
+    'id',
+    'agent_id',
+    'goal_id',
+    'preferred_next_step',
+    'avoid_strategies',
+    'must_check_before_retry',
+    'updated_at',
+  ].every((column) => columns.has(column));
+  if (!hasRequiredColumns) {
+    return;
+  }
+
+  db.exec(`
+DROP INDEX IF EXISTS idx_policies_agent_goal;
+ALTER TABLE policies RENAME TO policies_legacy;
+${POLICIES_TABLE_SQL}
+INSERT INTO policies (
+  id,
+  agent_id,
+  goal_id,
+  preferred_next_step,
+  avoid_strategies,
+  must_check_before_retry,
+  updated_at
+)
+SELECT
+  id,
+  agent_id,
+  goal_id,
+  preferred_next_step,
+  avoid_strategies,
+  must_check_before_retry,
+  updated_at
+FROM policies_legacy;
+DROP TABLE policies_legacy;
+`);
+}
+
+function migrateRetryCheckEventsCompositeForeignKeyIfNeeded(db: Database.Database): void {
+  if (!tableExists(db, 'retry_check_events') || foreignKeyCount(db, 'retry_check_events') > 0) {
+    return;
+  }
+
+  const columns = tableColumns(db, 'retry_check_events');
+  const hasRequiredColumns = [
+    'id',
+    'agent_id',
+    'goal_id',
+    'planned_action',
+    'what_changed',
+    'strategy_tags',
+    'policy_acknowledged',
+    'allowed',
+    'reason',
+    'warnings',
+    'tag_overlap_rate',
+    'created_at',
+  ].every((column) => columns.has(column));
+  if (!hasRequiredColumns) {
+    return;
+  }
+
+  db.exec(`
+DROP INDEX IF EXISTS idx_retry_check_events_agent_goal_created_at;
+ALTER TABLE retry_check_events RENAME TO retry_check_events_legacy;
+${RETRY_CHECK_EVENTS_TABLE_SQL}
+INSERT INTO retry_check_events (
+  id,
+  agent_id,
+  goal_id,
+  planned_action,
+  what_changed,
+  strategy_tags,
+  policy_acknowledged,
+  allowed,
+  reason,
+  warnings,
+  tag_overlap_rate,
+  created_at
+)
+SELECT
+  id,
+  agent_id,
+  goal_id,
+  planned_action,
+  what_changed,
+  strategy_tags,
+  policy_acknowledged,
+  allowed,
+  reason,
+  warnings,
+  tag_overlap_rate,
+  created_at
+FROM retry_check_events_legacy;
+DROP TABLE retry_check_events_legacy;
+CREATE INDEX IF NOT EXISTS idx_retry_check_events_agent_goal_created_at
+  ON retry_check_events(agent_id, goal_id, created_at DESC);
+`);
+}
+
+function migrateRecoveryEventsCompositeForeignKeyIfNeeded(db: Database.Database): void {
+  if (!tableExists(db, 'recovery_events') || foreignKeyCount(db, 'recovery_events') > 0) {
+    return;
+  }
+
+  const columns = tableColumns(db, 'recovery_events');
+  const hasRequiredColumns = [
+    'id',
+    'agent_id',
+    'goal_id',
+    'goal_title',
+    'current_stage',
+    'summary',
+    'source',
+    'created_at',
+  ].every((column) => columns.has(column));
+  if (!hasRequiredColumns) {
+    return;
+  }
+
+  db.exec(`
+DROP INDEX IF EXISTS idx_recovery_events_agent_goal_created_at;
+ALTER TABLE recovery_events RENAME TO recovery_events_legacy;
+${RECOVERY_EVENTS_TABLE_SQL}
+INSERT INTO recovery_events (
+  id,
+  agent_id,
+  goal_id,
+  goal_title,
+  current_stage,
+  summary,
+  source,
+  created_at
+)
+SELECT
+  id,
+  agent_id,
+  goal_id,
+  goal_title,
+  current_stage,
+  summary,
+  source,
+  created_at
+FROM recovery_events_legacy;
+DROP TABLE recovery_events_legacy;
+CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
+  ON recovery_events(agent_id, goal_id, created_at DESC);
+`);
+}
+
 /**
  * 将 schema.sql 应用到给定数据库实例。
  * 用于生产初始化和测试内存数据库共享同一 schema。
@@ -164,6 +527,11 @@ CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
 export function applySchema(db: Database.Database): void {
   const sql = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
   migrateAgentIsolationColumnsIfNeeded(db);
+  migrateAttemptsCompositeForeignKeyIfNeeded(db);
+  migrateReflectionsCompositeForeignKeyIfNeeded(db);
+  migratePoliciesCompositeForeignKeyIfNeeded(db);
+  migrateRetryCheckEventsCompositeForeignKeyIfNeeded(db);
+  migrateRecoveryEventsCompositeForeignKeyIfNeeded(db);
   db.exec(sql);
   migrateAgentIsolationIndexesIfNeeded(db);
   migrateGoalAgentAssignmentsIfNeeded(db);

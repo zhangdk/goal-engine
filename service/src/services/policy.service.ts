@@ -22,12 +22,13 @@
 
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import type { Reflection, Policy } from '../../../shared/types.js';
+import type { Reflection, Policy, Knowledge } from '../../../shared/types.js';
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { ReflectionRepo } from '../repos/reflection.repo.js';
 import type { PolicyRepo } from '../repos/policy.repo.js';
 import { DEFAULT_AGENT_ID } from '../agent-context.js';
+import type { KnowledgeService } from './knowledge.service.js';
 
 export type WriteReflectionInput = {
   reflectionId?: string;
@@ -44,6 +45,7 @@ export type WriteReflectionInput = {
 export type WriteReflectionResult = {
   reflection: Reflection;
   policy: Policy;
+  knowledge?: Knowledge;
 };
 
 /** 默认最小重试前检查项。 */
@@ -58,7 +60,8 @@ export class PolicyService {
     private goalRepo: GoalRepo,
     private attemptRepo: AttemptRepo,
     private reflectionRepo: ReflectionRepo,
-    private policyRepo: PolicyRepo
+    private policyRepo: PolicyRepo,
+    private knowledgeService?: KnowledgeService
   ) {}
 
   /**
@@ -75,6 +78,7 @@ export class PolicyService {
 
     let reflection!: Reflection;
     let policy!: Policy;
+    let knowledge: Knowledge | undefined;
 
     const transaction = this.db.transaction(() => {
       // 1. 写入 reflection
@@ -117,10 +121,26 @@ export class PolicyService {
       };
 
       this.policyRepo.upsert(policy);
+
+      const attempt = this.attemptRepo.getById(agentId, input.attemptId);
+      if (this.knowledgeService && attempt) {
+        knowledge = this.knowledgeService.createFromReflection({
+          agentId,
+          goalId: input.goalId,
+          attemptId: input.attemptId,
+          stage: attempt.stage,
+          actionTaken: attempt.actionTaken,
+          strategyTags: attempt.strategyTags,
+          summary: input.summary,
+          rootCause: input.rootCause,
+          mustChange: input.mustChange,
+          createdAt: input.createdAt,
+        });
+      }
     });
 
     transaction();
 
-    return { reflection, policy };
+    return { reflection, policy, knowledge };
   }
 }

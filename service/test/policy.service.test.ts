@@ -5,13 +5,19 @@ import { GoalRepo } from '../src/repos/goal.repo.js';
 import { AttemptRepo } from '../src/repos/attempt.repo.js';
 import { ReflectionRepo } from '../src/repos/reflection.repo.js';
 import { PolicyRepo } from '../src/repos/policy.repo.js';
+import { KnowledgeRepo } from '../src/repos/knowledge.repo.js';
+import { KnowledgePromotionRepo } from '../src/repos/knowledge-promotion.repo.js';
 import { PolicyService } from '../src/services/policy.service.js';
+import { KnowledgeService } from '../src/services/knowledge.service.js';
 
 let db: Database.Database;
 let goalRepo: GoalRepo;
 let attemptRepo: AttemptRepo;
 let reflectionRepo: ReflectionRepo;
 let policyRepo: PolicyRepo;
+let knowledgeRepo: KnowledgeRepo;
+let knowledgePromotionRepo: KnowledgePromotionRepo;
+let knowledgeService: KnowledgeService;
 let policyService: PolicyService;
 
 /** 快速创建 active goal + failure attempt */
@@ -51,7 +57,10 @@ beforeEach(() => {
   attemptRepo = new AttemptRepo(db);
   reflectionRepo = new ReflectionRepo(db);
   policyRepo = new PolicyRepo(db);
-  policyService = new PolicyService(db, goalRepo, attemptRepo, reflectionRepo, policyRepo);
+  knowledgeRepo = new KnowledgeRepo(db);
+  knowledgePromotionRepo = new KnowledgePromotionRepo(db);
+  knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
+  policyService = new PolicyService(db, goalRepo, attemptRepo, reflectionRepo, policyRepo, knowledgeService);
 });
 
 // ─── Policy Service 测试 ──────────────────────────────────────────────────────
@@ -175,6 +184,30 @@ describe('PolicyService', () => {
     });
 
     expect(result.policy.mustCheckBeforeRetry.length).toBeGreaterThan(0);
+  });
+
+  it('creates descriptive knowledge when writing a reflection', () => {
+    const { goalId, attemptId } = makeGoalAndFailureAttempt();
+
+    const result = policyService.writeReflectionAndUpdatePolicy({
+      reflectionId: testId('reflection'),
+      goalId,
+      attemptId,
+      summary: 'Search results were stale.',
+      rootCause: 'Aggregator lag.',
+      mustChange: 'Check official pages.',
+      avoidStrategy: 'event_search',
+      createdAt: nowIso(),
+    });
+
+    expect(result.knowledge).toEqual(
+      expect.objectContaining({
+        observation: 'Search results were stale.',
+        hypothesis: 'Aggregator lag.',
+        implication: 'Check official pages.',
+      })
+    );
+    expect(knowledgeRepo.listByGoal('goal-engine-demo', goalId)).toHaveLength(1);
   });
 
   it('rolls back both reflection and policy if policy upsert fails', () => {

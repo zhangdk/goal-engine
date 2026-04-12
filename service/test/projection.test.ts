@@ -35,6 +35,10 @@ describe('Projection consistency (test-strategy 8.x)', () => {
         lastFailureSummary: '搜索失败',
         avoidStrategies: ['broad-web-search'],
         preferredNextStep: '用官方文档',
+        recentAttempts: [],
+        relevantKnowledge: [],
+        sharedWisdom: [],
+        openQuestions: [],
         generatedAt: '2026-04-03T08:00:00.000Z',
       },
       policy: {
@@ -87,6 +91,10 @@ describe('Projection consistency (test-strategy 8.x)', () => {
         lastFailureSummary: '宽泛搜索信噪比太低',
         avoidStrategies: ['broad-web-search'],
         preferredNextStep: '只比较 3 个官方文档',
+        recentAttempts: [],
+        relevantKnowledge: [],
+        sharedWisdom: [],
+        openQuestions: [],
         generatedAt: '2026-04-03T08:15:00.000Z',
       },
       policy: {
@@ -132,6 +140,10 @@ describe('Projection consistency (test-strategy 8.x)', () => {
         lastFailureSummary: '失败摘要',
         avoidStrategies: ['策略A'],
         preferredNextStep: '下一步',
+        recentAttempts: [],
+        relevantKnowledge: [],
+        sharedWisdom: [],
+        openQuestions: [],
         generatedAt: '2026-04-03T08:00:00.000Z',
       },
       policy: {

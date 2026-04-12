@@ -15,7 +15,7 @@
  *   policy updated          [avoid_strategies: ['broad-web-search']]
  *       │
  *       ▼
- *   retry same strategy     → BLOCKED (blocked_strategy_overlap)
+ *   retry same strategy     → BLOCKED (no_meaningful_change) + advisory
  *       │
  *       ▼
  *   retry with new strategy → ALLOWED (allowed)
@@ -115,10 +115,15 @@ describe('Behavior Change Loop — full end-to-end', () => {
     });
     expect(blockedRes.status).toBe(200);
     const { data: blocked } = await blockedRes.json() as {
-      data: { allowed: boolean; reason: string };
+      data: { allowed: boolean; reason: string; warnings: string[] };
     };
     expect(blocked.allowed).toBe(false);
-    expect(blocked.reason).toBe('blocked_strategy_overlap');
+    expect(blocked.reason).toBe('no_meaningful_change');
+    expect(blocked.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('avoid_strategy'),
+      ]),
+    );
 
     // ── Step 6: 换策略重试 → 应被允许 ────────────────────────────────────────
     const allowedRes = await app.request('/api/v1/retry-guard/check', {

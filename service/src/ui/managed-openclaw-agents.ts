@@ -112,10 +112,10 @@ function readManagedAgentState(paths?: ManagedAgentStatePaths): {
     currentManagedAgentId:
       runtimeState.goalEngine?.currentManagedAgentId
       ?? workspaceState.goalEngine?.currentManagedAgentId,
-    managedAgents:
-      runtimeState.goalEngine?.managedAgents
-      ?? workspaceState.goalEngine?.managedAgents
-      ?? [],
+    managedAgents: mergeManagedAgents(
+      workspaceState.goalEngine?.managedAgents ?? [],
+      runtimeState.goalEngine?.managedAgents ?? []
+    ),
     goalAlignmentSnapshots:
       runtimeState.goalEngine?.goalAlignmentSnapshots
       ?? workspaceState.goalEngine?.goalAlignmentSnapshots
@@ -125,6 +125,17 @@ function readManagedAgentState(paths?: ManagedAgentStatePaths): {
       ?? workspaceState.goalEngine?.runtimeEvents
       ?? {},
   };
+}
+
+function mergeManagedAgents(
+  workspaceAgents: ManagedOpenClawAgent[],
+  runtimeAgents: ManagedOpenClawAgent[]
+): ManagedOpenClawAgent[] {
+  const runtimeAgentIds = new Set(runtimeAgents.map((agent) => agent.agentId));
+  return [
+    ...runtimeAgents,
+    ...workspaceAgents.filter((agent) => !runtimeAgentIds.has(agent.agentId)),
+  ];
 }
 
 function readStateFile(resolvedPath: string): WorkspaceState {

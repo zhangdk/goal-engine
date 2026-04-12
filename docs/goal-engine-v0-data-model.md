@@ -1,6 +1,6 @@
 # Goal Engine v0 Data Model
 
-> 状态：可实施草案  
+> 状态：已实施数据模型
 > 日期：2026-04-03  
 > 目标：定义 Goal Engine v0 的事实源、资源关系、存储字段、状态迁移和派生规则
 
@@ -24,12 +24,13 @@
 
 ### 2.1 事实源最小化
 
-v0 的主事实源只保留 4 类：
+v0 的主事实源保留 5 类：
 
 - `Goal`
 - `Attempt`
 - `Reflection`
 - `Policy`
+- `Knowledge`
 
 ### 2.2 派生结果不做唯一真相
 
@@ -104,6 +105,19 @@ v0 不做复杂版本树。
 - 保存禁止重复的策略标签
 - 保存下一步推荐方向
 - 保存重试前必须检查的事项
+
+`avoid_strategies` 仍保留兼容旧 projection 和 UI，但不再作为 retry guard 的单独硬阻断依据。
+
+### 3.5 Knowledge
+
+存储失败后形成的 descriptive cognition。
+
+职责：
+
+- 记录特定上下文下观察到了什么
+- 记录系统对原因的假设
+- 记录未来行动可参考的 implication
+- 支撑 recovery packet 和 retry guard advisory
 
 ---
 
@@ -213,6 +227,75 @@ v0 不做复杂版本树。
 
 - v0 建议对 `goal_id` 做唯一约束
 - 每个 goal 只保留当前有效 policy 一份
+
+### 4.5 `knowledge`
+
+#### Purpose
+
+保存从 reflection 或显式 API 写入的认知条目。
+
+#### Fields
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | `TEXT` | yes | 主键 |
+| `agent_id` | `TEXT` | yes | 外键 -> `agents.id` |
+| `goal_id` | `TEXT` | yes | 复合外键 -> `goals(agent_id, id)` |
+| `source_attempt_id` | `TEXT` | no | 复合外键 -> `attempts(agent_id, id)` |
+| `context` | `TEXT` | yes | 发生条件/阶段 |
+| `observation` | `TEXT` | yes | 观察到的事实 |
+| `hypothesis` | `TEXT` | yes | 对原因的假设 |
+| `implication` | `TEXT` | yes | 对未来行动的参考意义 |
+| `related_strategy_tags` | `TEXT` | yes | JSON string array |
+| `created_at` | `TEXT` | yes | ISO 时间 |
+
+#### Constraints
+
+- `knowledge` 归属于单个 `agent_id`
+- `goal_id` / `source_attempt_id` 必须属于同一 agent
+- 条目必须是 descriptive，不表达“系统禁止做 X”
+
+### 4.6 `knowledge_promotions`
+
+#### Purpose
+
+保存经过整理后的可复用认知。
+
+#### Fields
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | `TEXT` | yes | 主键 |
+| `knowledge_id` | `TEXT` | yes | 外键 -> `knowledge.id` |
+| `visibility` | `TEXT` | yes | `private / agent / global` |
+| `agent_id` | `TEXT` | conditional | `global` 时必须为空；其他 visibility 必须存在 |
+| `subject` | `TEXT` | yes | 主题标签 |
+| `condition` | `TEXT` | yes | JSON object |
+| `summary` | `TEXT` | yes | 简明结论 |
+| `recommendation` | `TEXT` | yes | 建议，不是强制规则 |
+| `confidence` | `REAL` | yes | `0..1` |
+| `support_count` | `INTEGER` | yes | 默认 `1` |
+| `created_at` | `TEXT` | yes | ISO 时间 |
+| `updated_at` | `TEXT` | yes | ISO 时间 |
+
+### 4.7 `knowledge_reference_events`
+
+#### Purpose
+
+记录 recovery packet / retry guard 何时引用了哪些认知，作为可审计 evidence。
+
+#### Fields
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | `TEXT` | yes | 主键 |
+| `agent_id` | `TEXT` | yes | 外键 -> `agents.id` |
+| `goal_id` | `TEXT` | yes | 复合外键 -> `goals(agent_id, id)` |
+| `retry_check_event_id` | `TEXT` | no | retry guard 引用时关联 |
+| `knowledge_ids` | `TEXT` | yes | JSON string array |
+| `promotion_ids` | `TEXT` | yes | JSON string array |
+| `decision_surface` | `TEXT` | yes | `recovery_packet / retry_guard` |
+| `created_at` | `TEXT` | yes | ISO 时间 |
 
 ---
 

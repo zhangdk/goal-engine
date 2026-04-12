@@ -7,6 +7,7 @@ export { reflectionGenerate } from './tools/reflection-generate.js';
 export { policyGetCurrent } from './tools/policy-get-current.js';
 export { retryGuardCheck } from './tools/retry-guard-check.js';
 export { recoveryPacketGet } from './tools/recovery-packet-get.js';
+export { knowledgeCreate } from './tools/knowledge-create.js';
 export { refreshProjections } from './projections/refresh-projections.js';
 export { loadProjectionState } from './projections/load-projection-state.js';
 export { dispatchEntrypoint } from './openclaw/dispatch-entrypoint.js';

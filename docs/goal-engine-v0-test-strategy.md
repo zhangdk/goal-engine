@@ -1,6 +1,6 @@
 # Goal Engine v0 Test Strategy
 
-> 状态：实施前测试基线  
+> 状态：已实施测试基线
 > 日期：2026-04-03  
 > 目标：把 Goal Engine v0 的行为闭环翻译成可执行的 TDD 测试矩阵、验收标准和实现顺序
 
@@ -37,10 +37,11 @@ v0 的核心风险不在 HTTP 路由，而在规则语义是否稳定。
 2. policy merge logic
 3. retry guard logic
 4. recovery packet composition
-5. repositories
-6. routes
-7. adapter tools
-8. OpenClaw projection integration
+5. knowledge derivation / promotion / reference persistence
+6. repositories
+7. routes
+8. adapter tools
+9. OpenClaw projection and UI integration
 
 ### 2.2 只测可观察行为
 
@@ -51,6 +52,7 @@ v0 的核心风险不在 HTTP 路由，而在规则语义是否稳定。
 - policy 有没有被正确更新
 - retry guard 有没有正确阻断
 - recovery packet 能不能支撑新 session 恢复
+- knowledge 是否从 reflection 派生、能否注入 recovery/retry 上下文
 
 而不是测试：
 
@@ -80,6 +82,7 @@ v0 必须建立在可解释断言上。
 - `policy service` 的合并和幂等逻辑
 - `retry guard service` 的阻断原因判断
 - `recovery service` 的派生组装逻辑
+- `knowledge service` 的创建、晋升、共享查询逻辑
 - 各 validator 的字段约束
 
 ### 3.2 Integration Tests
@@ -91,6 +94,10 @@ v0 必须建立在可解释断言上。
 - `GET /policies/current`
 - `POST /retry-guard/check`
 - `GET /recovery-packet`
+- `POST /knowledge`
+- `GET /knowledge?goal_id=...`
+- `POST /knowledge/:knowledgeId/promotions`
+- `GET /knowledge/shared?subjects=...`
 
 ### 3.3 Adapter Tests
 
@@ -112,6 +119,7 @@ v0 必须建立在可解释断言上。
 5. 同策略重试被 retry guard 阻断
 6. 换策略后允许继续
 7. 生成 recovery packet
+8. recovery/retry/UI 能展示 relevant knowledge / shared wisdom
 
 ---
 
@@ -192,7 +200,7 @@ As an OpenClaw integration layer, I want local summary files to stay as projecti
 - `allowed = false`
 - `reason = policy_not_acknowledged`
 
-#### Test: blocks when strategy overlaps blocked policy
+#### Test: warns when strategy overlaps legacy avoid_strategy
 
 输入：
 
@@ -200,8 +208,10 @@ As an OpenClaw integration layer, I want local summary files to stay as projecti
 
 断言：
 
-- `allowed = false`
-- `reason = blocked_strategy_overlap`
+- 返回 `warnings`
+- warning 文案说明这是 legacy risk context，不是硬阻断
+- 如果本轮还有 `what_changed` 为空等问题，最终 hard-block reason 应是 `no_meaningful_change`
+- `blocked_strategy_overlap` 仅保留为历史 reason 兼容值
 
 #### Test: blocks when nothing meaningful changed
 

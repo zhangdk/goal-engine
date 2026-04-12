@@ -4,6 +4,7 @@ import { refreshProjections } from '../projections/refresh-projections.js';
 import { DEFAULT_PROJECTION_DIR } from '../openclaw/paths.js';
 import { policyGetCurrent } from '../tools/policy-get-current.js';
 import { recoveryPacketGet } from '../tools/recovery-packet-get.js';
+import { formatKnowledgeSections } from './knowledge-format.js';
 
 export type RecoverGoalSessionInput = {
   goalId: string;
@@ -45,8 +46,22 @@ export async function recoverGoalSession(
     }
   }
 
+  const knowledgeSections = formatKnowledgeSections({
+    relevantKnowledge: packet.relevantKnowledge,
+    sharedWisdom: packet.sharedWisdom,
+  });
+
   return {
-    summary: `Recovery summary:\nGoal: ${packet.goalTitle}\nStage: ${packet.currentStage}\nLast failure: ${packet.lastFailureSummary ?? 'None'}\nRecommended next step: ${packet.preferredNextStep ?? 'None'}\nProjection: ${projectionMissing ? 'rebuilt from service' : 'already available'}\n${policySummary}`,
+    summary: [
+      'Recovery summary:',
+      `Goal: ${packet.goalTitle}`,
+      `Stage: ${packet.currentStage}`,
+      `Last failure: ${packet.lastFailureSummary ?? 'None'}`,
+      `Recommended next step: ${packet.preferredNextStep ?? 'None'}`,
+      `Projection: ${projectionMissing ? 'rebuilt from service' : 'already available'}`,
+      policySummary,
+      ...knowledgeSections,
+    ].join('\n'),
   };
 }
 

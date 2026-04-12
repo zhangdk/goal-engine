@@ -88,6 +88,15 @@ export function buildAgentDetail(
     title: string;
     detail: string;
   }>;
+  knowledge: Array<{
+    id: string;
+    timestamp: string;
+    context: string;
+    observation: string;
+    hypothesis: string;
+    implication: string;
+    relatedStrategyTags: string[];
+  }>;
   timeline: ReturnType<typeof buildTimeline>;
   systemGaps: Array<{
     key: string;
@@ -114,6 +123,7 @@ export function buildAgentDetail(
   const reflections = attachedGoal ? deps.reflectionRepo.listByGoal(managedAgent.agentId, attachedGoal.id) : [];
   const policy = attachedGoal ? deps.policyRepo.getByGoal(managedAgent.agentId, attachedGoal.id) : null;
   const recovery = attachedGoal ? deps.recoveryService.build(managedAgent.agentId, attachedGoal.id) : null;
+  const knowledge = recovery?.relevantKnowledge ?? [];
   const retryChecks = attachedGoal ? deps.retryHistoryRepo.listByGoal(managedAgent.agentId, attachedGoal.id, 100) : [];
   const recoveryEvents = attachedGoal ? deps.recoveryEventRepo.listByGoal(managedAgent.agentId, attachedGoal.id, 100) : [];
   const goalHistory = deps.goalAgentAssignmentRepo.listGoalHistoryByAgent(managedAgent.agentId, 50);
@@ -140,6 +150,7 @@ export function buildAgentDetail(
     policy,
     retryChecks,
     recoveryEvents,
+    knowledge,
   });
   const projectionObservations = attachedGoal
     ? buildProjectionObservations({
@@ -266,6 +277,15 @@ export function buildAgentDetail(
     goalHistory,
     reflectionHistory,
     operationLog,
+    knowledge: knowledge.map((item) => ({
+      id: item.id,
+      timestamp: item.createdAt,
+      context: item.context,
+      observation: item.observation,
+      hypothesis: item.hypothesis,
+      implication: item.implication,
+      relatedStrategyTags: item.relatedStrategyTags,
+    })),
     timeline,
     systemGaps: [
       {

@@ -7,7 +7,10 @@ import type { GoalRepo } from '../repos/goal.repo.js';
 import type { PolicyRepo } from '../repos/policy.repo.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { RetryHistoryRepo } from '../repos/retry-history.repo.js';
+import type { KnowledgeReferenceEventRepo } from '../repos/knowledge-reference-event.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
+import type { KnowledgeService } from '../services/knowledge.service.js';
+import { knowledgeToSnakeCase } from './knowledge.js';
 import { resolveAgentContext } from '../agent-context.js';
 
 const checkSchema = z.object({
@@ -23,6 +26,8 @@ export function retryGuardRouter(
   policyRepo: PolicyRepo,
   attemptRepo: AttemptRepo,
   retryHistoryRepo: RetryHistoryRepo,
+  knowledgeService: KnowledgeService,
+  knowledgeReferenceEventRepo: KnowledgeReferenceEventRepo,
   goalAgentHistoryService: GoalAgentHistoryService
 ): Hono {
   const router = new Hono();
@@ -52,6 +57,8 @@ export function retryGuardRouter(
     }
 
     const latestFailure = attemptRepo.getLatestFailure(agentId, data.goal_id);
+    const knowledgeContext = knowledgeService.listRelevant(agentId, data.goal_id, data.strategy_tags, 10);
+    const sharedWisdom = knowledgeService.listSharedWisdom(agentId, data.goal_id, data.strategy_tags, 10);
 
     const result = guardService.check({
       policyAcknowledged: data.policy_acknowledged,
@@ -59,10 +66,13 @@ export function retryGuardRouter(
       whatChanged: data.what_changed,
       policy,
       latestFailureAttempt: latestFailure,
+      knowledgeContext,
+      sharedWisdom,
     });
 
+    const retryCheckEventId = randomUUID();
     retryHistoryRepo.create({
-      id: randomUUID(),
+      id: retryCheckEventId,
       agentId,
       goalId: data.goal_id,
       plannedAction: data.planned_action,
@@ -75,6 +85,16 @@ export function retryGuardRouter(
       tagOverlapRate: result.tagOverlapRate,
       createdAt: new Date().toISOString(),
     });
+    knowledgeReferenceEventRepo.create({
+      id: randomUUID(),
+      agentId,
+      goalId: data.goal_id,
+      retryCheckEventId,
+      knowledgeIds: result.referencedKnowledgeIds ?? [],
+      promotionIds: sharedWisdom.map((promotion) => promotion.id),
+      decisionSurface: 'retry_guard',
+      createdAt: new Date().toISOString(),
+    });
     goalAgentHistoryService.touchGoal(data.goal_id, 'retry_checked', undefined, agentId);
 
     return c.json({
@@ -83,6 +103,9 @@ export function retryGuardRouter(
         reason: result.reason,
         warnings: result.warnings,
         tag_overlap_rate: result.tagOverlapRate,
+        advisories: result.advisories ?? [],
+        knowledge_context: (result.knowledgeContext ?? []).map(knowledgeToSnakeCase),
+        referenced_knowledge_ids: result.referencedKnowledgeIds ?? [],
       },
     });
   });

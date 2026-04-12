@@ -55,9 +55,54 @@ export type Policy = {
   agentId: string;
   goalId: string;
   preferredNextStep?: string;
+  /** @deprecated Prefer descriptive knowledge and retry advisories over strategy bans. */
   avoidStrategies: string[];
   mustCheckBeforeRetry: string[];
   updatedAt: string;
+};
+
+export type KnowledgeVisibility = 'private' | 'agent' | 'global';
+
+export type Knowledge = {
+  id: string;
+  agentId: string;
+  goalId: string;
+  sourceAttemptId?: string;
+  context: string;
+  observation: string;
+  hypothesis: string;
+  implication: string;
+  relatedStrategyTags: string[];
+  createdAt: string;
+};
+
+export type KnowledgePromotion = {
+  id: string;
+  knowledgeId: string;
+  visibility: KnowledgeVisibility;
+  agentId?: string;
+  subject: string;
+  condition: Record<string, unknown>;
+  summary: string;
+  recommendation: string;
+  confidence: number;
+  supportCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RecoveryPacketCurrentPolicy = {
+  preferredNextStep?: string;
+  mustCheckBeforeRetry: string[];
+};
+
+export type RecoveryPacketRecentAttempt = {
+  id: string;
+  stage: string;
+  actionTaken: string;
+  result: AttemptResult;
+  failureType?: FailureType;
+  createdAt: string;
 };
 
 export type RecoveryPacket = {
@@ -68,8 +113,14 @@ export type RecoveryPacket = {
   successCriteria: string[];
   lastMeaningfulProgress?: string;
   lastFailureSummary?: string;
+  /** @deprecated Prefer relevantKnowledge and sharedWisdom. */
   avoidStrategies: string[];
   preferredNextStep?: string;
+  recentAttempts: RecoveryPacketRecentAttempt[];
+  currentPolicy?: RecoveryPacketCurrentPolicy;
+  relevantKnowledge: Knowledge[];
+  sharedWisdom: KnowledgePromotion[];
+  openQuestions: string[];
   generatedAt: string;
 };
 
@@ -78,6 +129,9 @@ export type RetryGuardResult = {
   reason: RetryGuardReason;
   warnings: string[];
   tagOverlapRate?: number;
+  advisories?: string[];
+  knowledgeContext?: Knowledge[];
+  referencedKnowledgeIds?: string[];
 };
 
 export type RetryCheckEvent = {
@@ -103,6 +157,17 @@ export type RecoveryEvent = {
   currentStage: string;
   summary: string;
   source: 'service' | 'projection';
+  createdAt: string;
+};
+
+export type KnowledgeReferenceEvent = {
+  id: string;
+  agentId: string;
+  goalId: string;
+  retryCheckEventId?: string;
+  knowledgeIds: string[];
+  promotionIds: string[];
+  decisionSurface: 'recovery_packet' | 'retry_guard';
   createdAt: string;
 };
 

@@ -1,10 +1,12 @@
 import type { AdapterClient } from '../client.js';
 import { goalGetCurrent } from '../tools/goal-get-current.js';
 import { policyGetCurrent } from '../tools/policy-get-current.js';
+import { recoveryPacketGet } from '../tools/recovery-packet-get.js';
 import { loadProjectionState, type ProjectionState } from '../projections/load-projection-state.js';
-import type { Goal, Policy } from '../../../shared/types.js';
+import type { Goal, Policy, RecoveryPacket } from '../../../shared/types.js';
 import { DEFAULT_PROJECTION_DIR } from '../openclaw/paths.js';
 import { updateGoalAlignmentSnapshot } from '../openclaw/runtime-state.js';
+import { formatKnowledgeSections } from './knowledge-format.js';
 
 export type ShowGoalStatusInput = {
   projectionDir?: string;
@@ -59,6 +61,7 @@ export async function showGoalStatus(
   const checkedAt = new Date().toISOString();
 
   let policy: Policy | null = null;
+  let recoveryPacket: RecoveryPacket | null = null;
 
   try {
     policy = await policyGetCurrent(client, goal.id);
@@ -66,6 +69,12 @@ export async function showGoalStatus(
     if (!isNoPolicyYetError(err)) {
       throw err;
     }
+  }
+
+  try {
+    recoveryPacket = await recoveryPacketGet(client, goal.id);
+  } catch {
+    recoveryPacket = null;
   }
 
   const projectionGoalTitle = extractMarkdownSection(projectionState.currentGoalPreview, '目标') ?? null;
@@ -88,6 +97,7 @@ export async function showGoalStatus(
     summary: buildStatusSummary({
       goal,
       policy,
+      recoveryPacket,
       projectionState,
       expectedGoalTitle: input.expectedGoalTitle,
       alignment,
@@ -98,6 +108,7 @@ export async function showGoalStatus(
 function buildStatusSummary(input: {
   goal: Goal;
   policy: Policy | null;
+  recoveryPacket: RecoveryPacket | null;
   projectionState: ProjectionState;
   expectedGoalTitle?: string;
   alignment: ReturnType<typeof buildAlignmentStatus>;
@@ -119,6 +130,13 @@ function buildStatusSummary(input: {
     lines.push(`Avoid: ${input.policy.avoidStrategies.length > 0 ? input.policy.avoidStrategies.map(item => `- ${item}`).join(', ') : 'None'}`);
   } else {
     lines.push('Current guidance: not available yet.');
+  }
+
+  if (input.recoveryPacket) {
+    lines.push(...formatKnowledgeSections({
+      relevantKnowledge: input.recoveryPacket.relevantKnowledge,
+      sharedWisdom: input.recoveryPacket.sharedWisdom,
+    }));
   }
 
   if (input.alignment.blocked) {

@@ -93,10 +93,14 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
           avoid_strategies: string[];
           preferred_next_step?: string;
         };
+        knowledge: {
+          implication: string;
+        };
       };
     };
     expect(reflectionBody.data.policy.avoid_strategies).toContain('repeat');
     expect(reflectionBody.data.policy.preferred_next_step).toBeTruthy();
+    expect(reflectionBody.data.knowledge.implication).toContain('下一次执行前必须说明这次具体改了什么');
 
     const retryCheckRes = await request.post('/api/v1/retry-guard/check', {
       data: {
@@ -115,7 +119,7 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
       };
     };
     expect(retryCheckBody.data.allowed).toBe(false);
-    expect(retryCheckBody.data.reason).toBe('blocked_strategy_overlap');
+    expect(retryCheckBody.data.reason).toBe('no_meaningful_change');
 
     const recoverRes = await request.get(`/api/v1/recovery-packet?goal_id=${startGoalBody.data.id}`);
     expect(recoverRes.status()).toBe(200);
@@ -127,6 +131,9 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
         last_failure_summary?: string;
         avoid_strategies: string[];
         preferred_next_step?: string;
+        relevant_knowledge: Array<{
+          implication: string;
+        }>;
       };
     };
     expect(recoverBody.data.goal_id).toBe(startGoalBody.data.id);
@@ -135,6 +142,32 @@ test.describe('OpenClaw-oriented Goal Engine user experience', () => {
     expect(recoverBody.data.last_failure_summary).toContain('Repeated the same path');
     expect(recoverBody.data.avoid_strategies).toContain('repeat');
     expect(recoverBody.data.preferred_next_step).toBeTruthy();
+    expect(recoverBody.data.relevant_knowledge[0].implication).toContain('下一次执行前必须说明这次具体改了什么');
+
+    const detailRes = await request.get('/api/v1/ui/agents/goal-engine-demo');
+    expect(detailRes.status()).toBe(200);
+    const detailBody = await detailRes.json() as {
+      data: {
+        knowledge: Array<{
+          implication: string;
+        }>;
+        timeline: Array<{
+          type: string;
+        }>;
+      };
+    };
+    expect(detailBody.data.knowledge[0].implication).toContain('下一次执行前必须说明这次具体改了什么');
+    expect(detailBody.data.timeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'knowledge',
+        }),
+      ])
+    );
+
+    const detailPageRes = await request.get('/ui/agents/goal-engine-demo');
+    expect(detailPageRes.status()).toBe(200);
+    expect(await detailPageRes.text()).toContain('id="knowledge"');
   });
 
   test('accepts runtime context from the OpenClaw CLI and reflects the selected managed agent in /ui', async ({ request, baseURL }) => {

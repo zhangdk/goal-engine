@@ -16,6 +16,9 @@ import { reflectionGenerate } from '../src/tools/reflection-generate.js';
 import { retryGuardCheck } from '../src/tools/retry-guard-check.js';
 import { recoveryPacketGet } from '../src/tools/recovery-packet-get.js';
 import { policyGetCurrent } from '../src/tools/policy-get-current.js';
+import { reflectionCreate } from '../src/tools/reflection-create.js';
+import { knowledgeCreate } from '../src/tools/knowledge-create.js';
+import { knowledgeCreate as publicKnowledgeCreate } from '../src/index.js';
 
 // ─── Mock fetch ───────────────────────────────────────────────────────────────
 
@@ -181,6 +184,94 @@ describe('reflectionGenerate', () => {
   });
 });
 
+describe('reflectionCreate', () => {
+  it('maps optional returned knowledge to camelCase', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        reflection: {
+          id: 'reflection_1',
+          goal_id: 'goal_1',
+          attempt_id: 'attempt_1',
+          summary: 'Timed out',
+          root_cause: 'Aggregator unstable',
+          must_change: 'Use official pages',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+        policy: {
+          id: 'policy_1',
+          goal_id: 'goal_1',
+          preferred_next_step: 'Use official pages',
+          avoid_strategies: ['broad-web-search'],
+          must_check_before_retry: ['确认不同路径'],
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+        knowledge: {
+          id: 'know_1',
+          goal_id: 'goal_1',
+          source_attempt_id: 'attempt_1',
+          context: 'Stage: search; action: broad search',
+          observation: 'Timed out',
+          hypothesis: 'Aggregator unstable',
+          implication: 'Use official pages',
+          related_strategy_tags: ['broad-web-search'],
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await reflectionCreate(client, {
+      goalId: 'goal_1',
+      attemptId: 'attempt_1',
+      summary: 'Timed out',
+      rootCause: 'Aggregator unstable',
+      mustChange: 'Use official pages',
+    });
+
+    expect(result.knowledge?.observation).toBe('Timed out');
+    expect(result.knowledge?.relatedStrategyTags).toEqual(['broad-web-search']);
+  });
+});
+
+describe('knowledgeCreate', () => {
+  it('is exported from the public adapter entrypoint', () => {
+    expect(publicKnowledgeCreate).toBe(knowledgeCreate);
+  });
+
+  it('serializes explicit knowledge creation and maps response to camelCase', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        id: 'know_1',
+        goal_id: 'goal_1',
+        source_attempt_id: 'attempt_1',
+        context: 'search stage',
+        observation: 'Aggregator failed',
+        hypothesis: 'Index lag',
+        implication: 'Check official pages',
+        related_strategy_tags: ['event_search'],
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const knowledge = await knowledgeCreate(client, {
+      goalId: 'goal_1',
+      sourceAttemptId: 'attempt_1',
+      context: 'search stage',
+      observation: 'Aggregator failed',
+      hypothesis: 'Index lag',
+      implication: 'Check official pages',
+      relatedStrategyTags: ['event_search'],
+    });
+
+    const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.source_attempt_id).toBe('attempt_1');
+    expect(callBody.related_strategy_tags).toEqual(['event_search']);
+    expect(knowledge.sourceAttemptId).toBe('attempt_1');
+    expect(knowledge.relatedStrategyTags).toEqual(['event_search']);
+  });
+});
+
 // ─── retry_guard_check ────────────────────────────────────────────────────────
 
 describe('retryGuardCheck', () => {
@@ -240,6 +331,34 @@ describe('recoveryPacketGet', () => {
         success_criteria: ['条件A'],
         avoid_strategies: ['broad-web-search'],
         preferred_next_step: '切换到官方文档',
+        current_policy: {
+          preferred_next_step: '切换到官方文档',
+          must_check_before_retry: ['确认不同路径'],
+        },
+        recent_attempts: [
+          {
+            id: 'attempt_1',
+            stage: 'research',
+            action_taken: '搜索失败',
+            result: 'failure',
+            failure_type: 'tool_error',
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        relevant_knowledge: [
+          {
+            id: 'know_1',
+            goal_id: 'goal_1',
+            context: 'research',
+            observation: 'Aggregator was stale.',
+            hypothesis: 'Index lag.',
+            implication: 'Check official pages.',
+            related_strategy_tags: ['broad-web-search'],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        shared_wisdom: [],
+        open_questions: ['Which source is authoritative?'],
         generated_at: '2026-01-01T00:00:00.000Z',
       },
     });
@@ -250,6 +369,10 @@ describe('recoveryPacketGet', () => {
     expect(packet.goalId).toBe('goal_1');
     expect(packet.goalTitle).toBe('目标');
     expect(packet.generatedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(packet.currentPolicy?.mustCheckBeforeRetry).toEqual(['确认不同路径']);
+    expect(packet.recentAttempts[0].actionTaken).toBe('搜索失败');
+    expect(packet.relevantKnowledge[0].implication).toBe('Check official pages.');
+    expect(packet.openQuestions).toEqual(['Which source is authoritative?']);
     expect((packet as Record<string, unknown>)['generated_at']).toBeUndefined();
   });
 
