@@ -4,9 +4,12 @@
 
 Goal Engine 是一个为自主智能体（OpenClaw Agent）设计的持久化目标管理与行为进化系统。它通过强制执行 **尝试-反思-进化 (Attempt-Reflect-Evolve)** 闭环，将大语言模型（LLM）从简单的“反应式预测器”转变为具备长期目标驱动能力的“进化者”。
 
+更深入的项目愿景与架构分析请见：
+[**英文介绍 (Introduction)**](GOAL_ENGINE_INTRO.md) | [**中文介绍**](GOAL_ENGINE_INTRO_zh.md)
+
 ## 核心理念
 
-![Goal Engine Architecture](docs/images/architecture.svg)
+![Goal Engine Architecture](assets/images/architecture.svg)
 
 - **目标持久化**：目标在会话重启、失败或环境重置后依然存续。
 - **持续进化**：智能体从失败中学习，通过结构化反思更新内部策略（Policy）。

@@ -4,9 +4,12 @@
 
 Goal Engine is a persistent goal-management and behavioral evolution system for autonomous agents (specifically local OpenClaw agents). It transforms LLMs from "reactive predictors" into "goal-oriented evolutionaries" by enforcing an **Attempt-Reflect-Evolve** loop.
 
+For a deeper dive into the vision and architecture, see:
+[**Introduction**](GOAL_ENGINE_INTRO.md) | [**中文介绍**](GOAL_ENGINE_INTRO_zh.md)
+
 ## Core Philosophy
 
-![Goal Engine Architecture](docs/images/architecture.svg)
+![Goal Engine Architecture](assets/images/architecture.svg)
 
 - **Goal Persistence:** Goals survive session restarts, failures, and environment resets.
 - **Continuous Evolution:** Agents learn from failures via structured reflections and update internal policies.
