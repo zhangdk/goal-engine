@@ -58,7 +58,7 @@ Every agent action should be part of the **Attempt -> Reflect -> Evolve** loop:
 
 ### 4. Memory Management
 - **Persistence First:** If a decision is made, it must be written to a file or the database. "Mental notes" do not exist.
-- **Identity Alignment:** Respect `SOUL.md` (personality/vibe) and `IDENTITY.md` (avatar/name) during agent interactions.
+- **Identity Alignment:** Respect `.context/SOUL.md` (personality/vibe) and `.context/IDENTITY.md` (avatar/name) during agent interactions.
 
 ---
 
@@ -79,3 +79,4 @@ goal-engine/
 - [ ] Implement automatic `goal_engine_bootstrap` lifecycle.
 - [ ] Wire up OpenClaw plugin hooks for seamless failure interception.
 - [ ] Add Multi-Agent goal partitioning and coordination logic.
+n logic.

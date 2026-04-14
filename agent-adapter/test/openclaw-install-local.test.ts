@@ -69,10 +69,10 @@ exit 0
     expect(config.hooks?.internal?.entries?.['boot-md']?.enabled).toBe(true);
     expect(config.hooks?.internal?.entries?.['bootstrap-extra-files']?.paths).toEqual(
       expect.arrayContaining([
-        'AGENTS.md',
-        'SOUL.md',
-        'USER.md',
-        'BOOT.md',
+        '.context/AGENTS.md',
+        '.context/SOUL.md',
+        '.context/USER.md',
+        '.context/BOOT.md',
         'openclaw/workspace/goal-engine/AGENTS.md',
         'openclaw/workspace/goal-engine/SKILLS.md',
       ])

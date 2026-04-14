@@ -218,6 +218,113 @@ OpenClaw 做 skill 发现时不能用 `ls ~/.openclaw/skills` 代替技能注册
   - stale projection 用例被本机 `blocked` alignment snapshot 抢先命中
 - 根因是测试默认透传了仓库里的真实 `.openclaw/runtime-state.json`
 - 只要开发机刚跑过浏览器验证，测试就会吃到真实 `goal-engine-demo` 的 snapshot
+
+---
+
+## [LRN-20260412-001] apple_mail_send_is_not_delivery_proof
+
+**Logged**: 2026-04-12T00:00:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+Apple Mail 的 AppleScript `send` 返回成功不等于 Gmail 已实际投递。
+
+### Details
+用户授权从 `dkdoudou@gmail.com` 发送外联邮件后，我用 macOS Mail/AppleScript 执行并收到 `sent 5 messages`，但用户检查本机 Apple Mail 没有配送发送信息，指出该 Gmail 场景应通过 Web Gmail 浏览器操作发送。
+
+关键教训：对外邮件这种真实世界动作，不能把本机客户端接受请求当成已投递证据。尤其是 Gmail 账号，若 Mail 客户端未完成同步、发件箱卡住、账号配置异常或投递失败，AppleScript 成功返回会造成误判。
+
+### Suggested Action
+发送 Gmail 外联时优先使用 Gmail Web 或 Gmail API，并在 Gmail Sent 页面验证已发送记录。若只能调用 Apple Mail，必须检查 Sent/Outbox/错误状态后再声明发送完成。
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/superpowers/specs/2026-04-12-ai-ops-outreach-batch-001.md
+- Tags: email, gmail, apple-mail, external-goal, delivery-verification
+
+---
+
+## [LRN-20260412-002] do_not_bypass_openclaw_when_testing_agent_evolution
+
+**Logged**: 2026-04-12T19:20:00+08:00
+**Priority**: critical
+**Status**: promoted
+**Area**: product
+**Promoted**: openclaw/workspace/goal-engine/AGENTS.md, openclaw/workspace/goal-engine/SKILLS.md, TOOLS.md
+
+### Summary
+验证“Agent 赚钱/进化”时，Codex 不能代替 OpenClaw Agent 找客户、写策略或执行外部动作，否则结果只能算 Codex baseline，不能证明 Agent 能力或 Goal Engine 学习闭环。
+
+### Details
+用户要求让 Agent 想办法赚钱并以赚到钱为目标执行。我直接在当前 Codex 会话中完成了市场判断、客户搜索、邮箱提取、外联文案和 Gmail Web 发送。虽然推进了外部目标，但绕开了被测对象：OpenClaw Agent。
+
+用户明确纠正：“你找的不算是Agent的本领，这么做Agent怎么进化？”
+
+关键产品边界：
+
+- 若目标是验证 OpenClaw Agent 能力，客户发现、策略选择、渠道选择、外部执行和失败记录必须由 OpenClaw Agent 自己完成。
+- Codex 可以做监督、记录、测试编排和审查，但不能把答案、客户名单、邮箱或最终策略喂给 Agent。
+- Codex 代办产生的成果应标记为 `Codex baseline` 或 `human-assisted baseline`，不能计入 OpenClaw Agent 进化证据。
+- 进化证据必须来自 Goal Engine 写回：failed attempt、reflection、knowledge、recovery packet，以及下一轮行为是否改变。
+
+### Suggested Action
+后续任何“Agent 能力/进化”实验：
+
+1. 先声明 execution owner：`OpenClaw Agent`、`Codex supervisor` 或 `human-assisted baseline`。
+2. 如果 owner 是 OpenClaw Agent，Codex 不得替它找目标、筛候选、写最终外联或发送。
+3. Codex 只允许提供实验约束、验收标准、观察 UI、检查 Goal Engine 状态和记录偏差。
+4. 要求 OpenClaw Agent 使用全新目标/客户，不能复用 Codex baseline 产物。
+5. 每次失败后必须写回 Goal Engine，并验证下一轮 Recovery Packet 是否改变行为。
+
+### Metadata
+- Source: user_feedback
+- Related Files: openclaw/workspace/goal-engine/AGENTS.md, openclaw/workspace/goal-engine/SKILLS.md, TOOLS.md, docs/superpowers/specs/2026-04-12-ai-ops-targets.md
+- Tags: correction, openclaw, agent-evolution, external-goal, evaluation-boundary, baseline
+- See Also: LRN-20260409-001, LRN-20260410-001, LRN-20260411-001
+
+---
+
+## [LRN-20260413-001] search_engines_should_be_read_through_browser_not_fetch_api
+
+**Logged**: 2026-04-13T00:00:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: infra
+**Promoted**: TOOLS.md, openclaw/workspace/goal-engine/AGENTS.md, openclaw/workspace/goal-engine/SKILLS.md
+
+### Summary
+对搜索引擎做外部目标候选发现时，不要用 API 式 `web_fetch`、curl 或静态抓取；应操作真实浏览器页面并从渲染结果读取数据，降低被封或触发 captcha 的概率。
+
+### Details
+OpenClaw Agent Revenue Round 001 中，Agent 通过 `web_fetch`、curl、multi-search-engine 访问 Google、DuckDuckGo、Baidu、Bing 等搜索路径，遇到 private/internal IP guard、captcha、challenge、空输出或 302。用户明确纠正：“搜索引擎不要用api，要操作浏览器，从浏览器读取数据，避免被封。”
+
+关键边界：
+
+- 失败的是 API/抓取式搜索路径，不应把所有 `search` 泛化为禁用。
+- 下一轮应使用 `agent-browser` CLI 或已配对浏览器 node 打开搜索页面，读取可见的渲染结果。
+- 仍然不能绕过 captcha、登录、风控或平台规则；遇到人工验证应停下并记录 blocker。
+- 外部消息发送前仍需人工批准。
+
+### Suggested Action
+Goal Engine retry/recovery 文案应区分：
+
+- avoid: `web_fetch-search`, `curl-search-scraping`, `static-search-fetch`
+- allowed next path: `browser-operated-search`
+
+OpenClaw Agent 下一轮应优先：
+
+1. 使用 `agent-browser open <search-url>`。
+2. 使用 `agent-browser snapshot` 或可见文本读取结果。
+3. 限制到一页结果和最多 10 个候选。
+4. 若出现 captcha 或 browser tooling failure，写回 Goal Engine。
+
+### Metadata
+- Source: user_feedback
+- Related Files: .learnings/ERRORS.md, TOOLS.md, openclaw/workspace/goal-engine/AGENTS.md, openclaw/workspace/goal-engine/SKILLS.md
+- Tags: correction, search, browser-automation, openclaw, external-goal, anti-bot
+- See Also: ERR-20260412-001
 - 解决方式是：
   - `beforeEach` 为测试创建临时空的 `runtime-state.json`
   - 所有专门构造的 `createApp(...)` 变体也显式传入该隔离文件

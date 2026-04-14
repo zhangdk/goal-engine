@@ -95,3 +95,45 @@ Process exited with signal SIGTERM.
 - Reproducible: yes
 - Related Files: .learnings/LEARNINGS.md
 - See Also: LRN-20260408-005
+
+---
+
+## [ERR-20260412-001] openclaw_agent_revenue_search_blocked
+
+**Logged**: 2026-04-12T22:05:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+OpenClaw Agent-owned revenue experiment could not complete prospect discovery because search/fetch/browser paths were blocked or unavailable.
+
+### Error
+```text
+web_fetch: Blocked: resolves to private/internal/special-use IP address
+canvas: node required
+DuckDuckGo: image challenge / captcha
+Baidu: captcha
+Bing/curl extraction: no usable output
+OpenClaw CLI foreground: timed out/no stdout while session JSONL showed internal progress
+```
+
+### Context
+- Goal: `OpenClaw Agent earns first AI Ops Sprint deposit`
+- Agent: `openclaw-revenue-agent-001`
+- Session: `revenue-agent-round-001`
+- Session file: `/Users/gushuai/.openclaw/agents/openclaw-revenue-agent-001/sessions/4674f25b-ae1c-4220-a9d6-7cd68715bfed.jsonl`
+- The Agent correctly bootstrapped Goal Engine, confirmed alignment, read the external goal skill, attempted search paths, found `agent-browser`, and wrote back a failed attempt through Goal Engine.
+- The failure is infrastructure/tool availability, not a market or offer validation failure.
+
+### Suggested Fix
+1. Prefer real browser operation for search engines: `agent-browser open <search-url>` and read rendered results.
+2. Avoid API-like `web_fetch`, curl, or static search-engine scraping as the next retry path.
+3. Pair or repair the OpenClaw browser node so `canvas` or browser automation works when `agent-browser` is insufficient.
+4. Provide a non-search public directory/source for the Agent to inspect if browser-operated search hits captcha.
+5. Improve `openclaw agent --json` foreground behavior so the CLI returns final session output or a clear timeout/error when the model run aborts.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/superpowers/specs/2026-04-12-openclaw-agent-revenue-round-001.md, .openclaw/runtime-state.json
+- See Also: LRN-20260412-002

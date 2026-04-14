@@ -32,7 +32,7 @@ boot_md["enabled"] = True
 bootstrap_extra = hook_entries.setdefault("bootstrap-extra-files", {})
 bootstrap_extra["enabled"] = True
 paths = bootstrap_extra.setdefault("paths", [])
-for required in ["AGENTS.md", "SOUL.md", "USER.md", "BOOT.md", "openclaw/workspace/goal-engine/AGENTS.md", "openclaw/workspace/goal-engine/SKILLS.md"]:
+for required in [".context/AGENTS.md", ".context/SOUL.md", ".context/USER.md", ".context/BOOT.md", "openclaw/workspace/goal-engine/AGENTS.md", "openclaw/workspace/goal-engine/SKILLS.md"]:
     if required not in paths:
         paths.append(required)
 

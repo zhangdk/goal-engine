@@ -1,6 +1,6 @@
-@WORKSPACE_RULES.md
-@BOOT.md
-@BOOTSTRAP.md
+@.context/WORKSPACE_RULES.md
+@.context/BOOT.md
+@.context/BOOTSTRAP.md
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands

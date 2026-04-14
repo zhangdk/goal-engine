@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const repoRoot = resolve(import.meta.dirname, '..', '..');
 
 const fallbackDocs = [
-  resolve(repoRoot, 'BOOT.md'),
+  resolve(repoRoot, '.context', 'BOOT.md'),
   resolve(repoRoot, 'openclaw', 'README.md'),
   resolve(repoRoot, 'openclaw', 'goal-engine-entrypoints.md'),
   resolve(repoRoot, 'openclaw', 'workspace', 'goal-engine', 'AGENTS.md'),
