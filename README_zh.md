@@ -6,6 +6,8 @@ Goal Engine 是一个为自主智能体（OpenClaw Agent）设计的持久化目
 
 ## 核心理念
 
+![Goal Engine Architecture](docs/images/architecture.svg)
+
 - **目标持久化**：目标在会话重启、失败或环境重置后依然存续。
 - **持续进化**：智能体从失败中学习，通过结构化反思更新内部策略（Policy）。
 - **自主执行堆栈**：提供任务编译、策略选择、边界管理及无成功证据不宣告完成的硬性约束。

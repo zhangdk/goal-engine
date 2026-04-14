@@ -6,6 +6,8 @@ Goal Engine is a persistent goal-management and behavioral evolution system for 
 
 ## Core Philosophy
 
+![Goal Engine Architecture](docs/images/architecture.svg)
+
 - **Goal Persistence:** Goals survive session restarts, failures, and environment resets.
 - **Continuous Evolution:** Agents learn from failures via structured reflections and update internal policies.
 - **Autonomous Execution Stack:** Provides mission compilation, strategy selection, boundary management, and no-false-done guards.
