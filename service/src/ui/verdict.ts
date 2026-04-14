@@ -2,17 +2,17 @@ import type { Attempt, Policy, RecoveryEvent, Reflection, RetryCheckEvent } from
 import type { TimelineEvent } from './timeline.js';
 import type { ExecutionPathState } from './path-analysis.js';
 
-export type VerdictLevel = 'none' | 'partial' | 'clear' | 'stalled';
-export type VerdictStatus = 'yes' | 'no' | 'partial';
+type VerdictLevel = 'none' | 'partial' | 'clear' | 'stalled';
+type VerdictStatus = 'yes' | 'no' | 'partial';
 
-export type VerdictSummary = {
+type VerdictSummary = {
   level: VerdictLevel;
   label: string;
   reason: string;
   evidenceEventIds: string[];
 };
 
-export type LearningVerdict = {
+type LearningVerdict = {
   overall: VerdictSummary;
   behaviorChanged: {
     status: VerdictStatus;

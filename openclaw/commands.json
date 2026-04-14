@@ -62,6 +62,27 @@
       "produces": "json",
       "summary": "Read current goal, guidance, and local projection state. When a new external task just arrived, pass expectedGoalTitle first and block execution until the active goal is aligned. If alignment is blocked, do not call web_search, web_fetch, or other external tools until Goal Engine actions resolve it. Once alignment is clear, if web_search is unavailable, use the ready local multi-search-engine skill as the preferred fallback search path."
     },
+    "supervise external goal": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "supervise external goal",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"userMessage\":\"<raw user task>\",\"receivedAt\":\"<iso timestamp>\",\"replaceActiveGoal\":false}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Compile a rough external-world task into a GoalContract, start the supervised goal, and require show goal status before any external execution."
+    },
     "record failed attempt": {
       "command": [
         "pnpm",

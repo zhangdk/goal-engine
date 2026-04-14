@@ -28,7 +28,7 @@
 
 import type { Attempt, Knowledge, KnowledgePromotion, Policy, RetryGuardResult } from '../../../shared/types.js';
 
-export type RetryGuardCheckInput = {
+type RetryGuardCheckInput = {
   policyAcknowledged: boolean;
   strategyTags: string[];
   whatChanged: string;

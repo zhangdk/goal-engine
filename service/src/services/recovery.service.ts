@@ -52,6 +52,15 @@ export class RecoveryService {
     const relevantKnowledge = this.knowledgeService.listRelevant(agentId, goalId, knowledgeTags, 10);
     const sharedWisdom = this.knowledgeService.listSharedWisdom(agentId, goalId, knowledgeTags, 10);
 
+    // Auto-promote referenced knowledge to 'agent' visibility
+    const referencedKnowledgeIds = new Set<string>();
+    for (const k of relevantKnowledge) {
+      if (!referencedKnowledgeIds.has(k.id)) {
+        this.knowledgeService.recordReference(k.id, agentId);
+        referencedKnowledgeIds.add(k.id);
+      }
+    }
+
     return {
       agentId,
       goalId: goal.id,

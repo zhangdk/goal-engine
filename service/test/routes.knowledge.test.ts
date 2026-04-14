@@ -145,4 +145,69 @@ describe('knowledge routes', () => {
     expect(otherGoalWisdomRes.status).toBe(200);
     expect(((await otherGoalWisdomRes.json()) as { data: Array<{ visibility: string }> }).data).toEqual([]);
   });
+
+  it('POST /:knowledgeId/promote - promotes knowledge to agent visibility', async () => {
+    const goalId = await createGoal('agent-a');
+    const createRes = await app.request('/api/v1/knowledge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        context: 'search stage',
+        observation: 'Aggregator failed',
+        hypothesis: 'stale index',
+        implication: 'check official sources',
+        related_strategy_tags: ['event_search'],
+      }),
+    });
+    const knowledgeId = ((await createRes.json()) as { data: { id: string } }).data.id;
+
+    const promoteRes = await app.request(`/api/v1/knowledge/${knowledgeId}/promote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        visibility: 'agent',
+        subject: 'event_search',
+        condition: { stage: 'search' },
+        summary: 'Aggregator can be stale.',
+        recommendation: 'Check official organizer pages.',
+        confidence: 0.75,
+      }),
+    });
+    expect(promoteRes.status).toBe(201);
+    const body = await promoteRes.json() as { data: { visibility: string; agent_id: string } };
+    expect(body.data.visibility).toBe('agent');
+    expect(body.data.agent_id).toBe('agent-a');
+  });
+
+  it('POST /:knowledgeId/promote - returns 422 for invalid visibility', async () => {
+    const goalId = await createGoal('agent-a');
+    const createRes = await app.request('/api/v1/knowledge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        context: 'search stage',
+        observation: 'Aggregator failed',
+        hypothesis: 'stale index',
+        implication: 'check official sources',
+        related_strategy_tags: ['event_search'],
+      }),
+    });
+    const knowledgeId = ((await createRes.json()) as { data: { id: string } }).data.id;
+
+    const promoteRes = await app.request(`/api/v1/knowledge/${knowledgeId}/promote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-a' },
+      body: JSON.stringify({
+        visibility: 'invalid',
+        subject: 'event_search',
+        condition: {},
+        summary: 'Test summary',
+        recommendation: 'Test recommendation',
+        confidence: 0.5,
+      }),
+    });
+    expect(promoteRes.status).toBe(422);
+  });
 });

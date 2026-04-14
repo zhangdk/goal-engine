@@ -55,6 +55,7 @@ describe('openclaw/commands.json', () => {
     }
 
     expect(commands.entrypoints['show goal status'].summary).toContain('multi-search-engine');
+    expect(commands.entrypoints['supervise external goal'].summary).toContain('GoalContract');
   });
 
   it('contains only entrypoints accepted by the CLI parser', () => {

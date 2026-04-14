@@ -7,10 +7,12 @@ import { recordFailureAndRefresh } from '../workflows/record-failure-and-refresh
 import { recoverGoalSession } from '../workflows/recover-goal-session.js';
 import { showGoalStatus } from '../workflows/show-goal-status.js';
 import { startGoalSession } from '../workflows/start-goal-session.js';
+import { superviseExternalGoal } from '../workflows/supervise-external-goal.js';
 
 export type OpenClawEntrypoint =
   | 'start goal'
   | 'show goal status'
+  | 'supervise external goal'
   | 'record failed attempt'
   | 'recover current goal'
   | 'check retry';
@@ -26,6 +28,14 @@ type StartGoalInput = {
 };
 
 type ShowGoalStatusInput = {
+  projectionDir?: string;
+};
+
+type SuperviseExternalGoalInput = {
+  userMessage: string;
+  receivedAt?: string;
+  deadlineHours?: number;
+  replaceActiveGoal?: boolean;
   projectionDir?: string;
 };
 
@@ -53,6 +63,7 @@ type CheckRetryInput = {
 export type DispatchEntrypointInput =
   | { entrypoint: 'start goal'; input: StartGoalInput }
   | { entrypoint: 'show goal status'; input?: ShowGoalStatusInput }
+  | { entrypoint: 'supervise external goal'; input: SuperviseExternalGoalInput }
   | { entrypoint: 'record failed attempt'; input: RecordFailedAttemptInput }
   | { entrypoint: 'recover current goal'; input?: RecoverCurrentGoalInput }
   | { entrypoint: 'check retry'; input: CheckRetryInput };
@@ -99,6 +110,23 @@ export async function dispatchEntrypoint(
         ...request.input,
         runtimeStatePath: options?.runtimeStatePath,
         runtimeContext: options?.runtimeContext,
+      });
+      return {
+        entrypoint: request.entrypoint,
+        summary: result.summary,
+      };
+    }
+    case 'supervise external goal': {
+      const result = await superviseExternalGoal(client, request.input);
+      updateExternalToolGuard({
+        runtimeStatePath: options?.runtimeStatePath,
+        runtimeContext: options?.runtimeContext,
+        guard: {
+          status: 'needs_status_check',
+          reason: 'An external-world goal was compiled into a GoalContract. Confirm alignment before external execution.',
+          nextAction: 'Call goal_engine_show_goal_status with expectedGoalTitle before search, browsing, messaging, or payment-related execution.',
+          updatedAt: new Date().toISOString(),
+        },
       });
       return {
         entrypoint: request.entrypoint,

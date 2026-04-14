@@ -531,10 +531,6 @@ function maxTimestamp(values: string[]): string {
   return values.sort((left, right) => right.localeCompare(left))[0] ?? '暂无活动';
 }
 
-export function formatAgentName(agentId: string): string {
-  return `智能体 ${agentId.slice(0, 8)}`;
-}
-
 function latestTimestamp(values: Array<string | null | undefined>): string {
   return (
     values.filter(Boolean).sort((left, right) => String(right).localeCompare(String(left)))[0] ??

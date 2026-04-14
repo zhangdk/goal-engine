@@ -60,6 +60,38 @@ Returns:
 - when alignment is blocked, execution permission is denied for search, browsing, and other external tools until Goal Engine actions align the task
 - when alignment is clear but `web_search` is unavailable, prefer the ready local `multi-search-engine` skill as the first fallback search path before declaring search unavailable
 
+### `supervise external goal`
+
+Intent:
+
+- compile a rough external-world user task into an executable GoalContract
+- start the supervised Goal Engine goal before the Agent does search, browsing, messaging, sales, or payment-related work
+- prevent the Agent from asking the user to choose the strategy when the user has given an outcome and autonomy
+
+Calls:
+
+- adapter `dispatchEntrypoint` in `agent-adapter/src/openclaw/dispatch-entrypoint.ts`
+- adapter `superviseExternalGoal`
+- adapter `startGoalSession`
+- OpenClaw plugin tool `goal_engine_supervise_external_goal`
+
+Reads/Writes:
+
+- reads the raw user task from payload `userMessage`
+- writes a Goal Engine goal with evidence-oriented success criteria
+- writes stop conditions for messaging, posting, identity use, payment, contracts, and false completion claims
+- refreshes local projections
+- writes an external tool guard requiring `show goal status` before external execution
+
+Returns:
+
+- external goal supervised summary
+- compiled GoalContract title
+- start-goal summary
+- strategy guard guidance
+- permission-boundary guidance
+- required next action: call `show goal status` with the same goal title before external execution
+
 ### `record failed attempt`
 
 Intent:
@@ -146,6 +178,7 @@ Until full plugin/hook wiring exists, OpenClaw can call the adapter directly thr
 - `cd agent-adapter && pnpm openclaw bootstrap`
 - `cd agent-adapter && pnpm openclaw entrypoint "start goal" --payload '{"title":"Ship Goal Engine","successCriteria":["One flow works"]}'`
 - `cd agent-adapter && pnpm openclaw entrypoint "start goal" --payload '{"title":"Ship Goal Engine","successCriteria":["One flow works"],"replaceActiveGoal":true}'`
+- `cd agent-adapter && pnpm openclaw entrypoint "supervise external goal" --payload '{"userMessage":"给你个任务，你要在一天内赚100元，方法不限。","receivedAt":"2026-04-13T07:18:32.373Z","replaceActiveGoal":true}'`
 - `cd agent-adapter && pnpm openclaw entrypoint "show goal status"`
 - `cd agent-adapter && pnpm openclaw entrypoint "show goal status" --payload '{"expectedGoalTitle":"Find a meeting venue in Zhangjiang"}'`
 - `cd agent-adapter && pnpm openclaw entrypoint "record failed attempt" --payload '{"stage":"integration","actionTaken":"Repeated the same path","strategyTags":["repeat"],"failureType":"stuck_loop"}'`

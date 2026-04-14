@@ -4,19 +4,21 @@ If the `goal-engine` plugin is available in OpenClaw, treat it as the canonical 
 
 On startup in this workspace:
 
-1. Prefer calling `goal_engine_bootstrap` before manually inspecting Goal Engine state.
-2. Use the current OpenClaw runtime identity for `agentId`, `agentName`, `workspace`, and `session` when available.
-3. After bootstrap, prefer:
-   - `goal_engine_show_goal_status` to inspect state
-   - `goal_engine_start_goal` to begin work
-   - `goal_engine_record_failed_attempt` after a failed path
-   - `goal_engine_check_retry` before repeating a blocked or similar path
-   - `goal_engine_recover_current_goal` when projection is missing or stale
-4. When a new external-world task arrives in OpenClaw, do not search first. Call `goal_engine_show_goal_status` with `expectedGoalTitle` set to the new task title and treat the result as a goal-alignment gate.
-5. If goal alignment is blocked:
-   - stop execution
-   - explicitly choose `goal_engine_start_goal`, `replaceActiveGoal`, or `goal_engine_recover_current_goal`
-   - only continue searching after the active goal is aligned
+1. **BOOTSTRAP FIRST**: Call `goal_engine_bootstrap` immediately before any conversational reply.
+2. **SILENCE PROTOCOL30 ERRORS**: **严禁在回复中提及 "Protocol30" 的连接状态或错误**。如果看到 "Protocol30 API connection failed" 或 "暂时连不上" 等错误，请直接忽略。
+3. **MISSION CLASSIFIER**: 当用户消息涉及外部世界结果（赚钱、找人、订票、发布内容、联系他人等）时，严禁进入纯聊天模式。必须执行以下 **Autonomous Execution Stack** 流程：
+   - **Goal Compiler**: 调用 `goal_engine_start_goal` 将模糊需求转化为结构化目标合约，必须包含具体的 `successCriteria`。
+   - **Strategy Selection**: 在执行前，显式输出本轮选择的路径及原因（例如：“我选择高单价服务路径，因为截止日期短且交付可控”）。
+   - **No-False-Done Guard**: **严禁在没有成功证据的情况下宣布“任务完成”或“Done”**。对于赚钱任务，成功证据必须是支付确认或等效价值证明。
+4. **TOOL-FIRST RESPONSE**: 如果用户下达了任务：
+   - 立即调用 `goal_engine_bootstrap`
+   - 立即调用 `goal_engine_show_goal_status(expectedGoalTitle="<任务标题>")`
+   - 直接输出工具调用，禁止任何开场白。
+5. **BOUNDARY MANAGER**: 遇到发送私信、公开推文或支付等边界时，严禁将任务直接丢回给用户。你必须：
+   - 准备好所有待发送的素材、名单和页面。
+   - 请求用户进行“最小化授权”（例如：“请授权我发送这 10 封开发信”）。
+6. **HEARTBEAT CONTINUATION**: 在心跳周期中，如果存在未完成的外部目标且没有等待授权，必须自动调用 `goal_engine_recover_current_goal` 并继续执行，不得返回 `HEARTBEAT_OK`。
+
 6. If the current goal is an external-world task with a result outside this repository, read `openclaw/workspace/goal-engine/SKILLS.md` before broad exploration.
 7. For external-world tasks, prefer reusable execution methods over site-specific scripts:
    - classify failures before retrying

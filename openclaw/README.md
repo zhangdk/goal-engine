@@ -105,8 +105,9 @@ This is the current intended behavior:
 - `BOOT.md` is loaded on `gateway:startup` to explain Goal Engine bootstrap expectations
 - `bootstrap-extra-files` is loaded on `agent:bootstrap` to inject Goal Engine context files
 - `goal_engine_bootstrap` remains an explicit tool even after context injection
-- `start goal`, `show goal status`, `recover current goal`, `record failed attempt`, and `check retry` remain explicit tools
-- when a new external task arrives, `show goal status` with `expectedGoalTitle` is the required first gate; if it reports blocked alignment, do not continue execution until the goal is recovered, replaced, or explicitly restarted
+- `supervise external goal`, `start goal`, `show goal status`, `recover current goal`, `record failed attempt`, and `check retry` remain explicit tools
+- when a rough external-world task arrives, use `goal_engine_supervise_external_goal` to compile it into a GoalContract before search, browsing, messaging, sales, or payment-related work
+- when a new external task may conflict with an active goal, `show goal status` with `expectedGoalTitle` is the required alignment gate; if it reports blocked alignment, do not continue execution until the goal is recovered, replaced, or explicitly restarted
 - while alignment is blocked, do not call search, browsing, or other external execution tools; only Goal Engine alignment actions are allowed
 - `check retry` is recommended before repeating a path, but is not automatically enforced
 - `record failed attempt` is a required explicit write-back after a confirmed failure, but is not automatically triggered

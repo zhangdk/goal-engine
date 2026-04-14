@@ -134,6 +134,9 @@ const EXTERNAL_TOOL_NAMES = new Set([
   'web_fetch',
   'web_search_exa',
   'web_fetch_exa',
+  'message',
+  'feishu_chat',
+  'p30_send_message',
   'browser',
   'browser_navigate',
   'browser_click',
@@ -180,6 +183,30 @@ function buildTools(): ToolDefinition[] {
           entrypoint: 'start goal',
           params,
           payloadKeys: ['title', 'successCriteria', 'currentStage', 'stopConditions', 'priority', 'replaceActiveGoal'],
+        }),
+    },
+    {
+      name: 'goal_engine_supervise_external_goal',
+      label: 'Goal Engine Supervise External Goal',
+      description: 'Compile a rough external-world task into a GoalContract, start the supervised goal, and require goal status alignment before external execution',
+      runtimeEventKind: 'supervise_external_goal',
+      parameters: {
+        type: 'object',
+        required: ['userMessage'],
+        properties: {
+          ...runtimeParameterProperties(),
+          userMessage: { type: 'string' },
+          receivedAt: { type: 'string' },
+          deadlineHours: { type: 'number' },
+          replaceActiveGoal: { type: 'boolean' },
+        },
+      },
+      execute: async (api, params) =>
+        runGoalEngineCli(api, {
+          command: 'entrypoint',
+          entrypoint: 'supervise external goal',
+          params,
+          payloadKeys: ['userMessage', 'receivedAt', 'deadlineHours', 'replaceActiveGoal'],
         }),
     },
     {
@@ -513,15 +540,27 @@ function resolveRuntimeContext(
     workspace: readOptionalString(params.workspace),
     session: readOptionalString(params.session),
   };
+  const fallback = resolveFallbackRuntimeContext(config);
 
-  if (
-    explicit.agentId ||
-    explicit.agentName ||
-    explicit.workspace ||
-    explicit.session ||
-    !config.runtime.preferEnvContext
-  ) {
-    return explicit;
+  if (explicit.agentId || explicit.agentName || explicit.workspace || explicit.session) {
+    return {
+      agentId: explicit.agentId ?? fallback.agentId,
+      agentName: explicit.agentName ?? fallback.agentName,
+      workspace: explicit.workspace ?? fallback.workspace,
+      session: explicit.session ?? fallback.session,
+    };
+  }
+
+  return fallback;
+}
+
+function resolveFallbackRuntimeContext(
+  config: Required<Omit<GoalEnginePluginConfig, 'runtime'>> & {
+    runtime: { preferEnvContext: boolean };
+  }
+): RuntimeContext {
+  if (!config.runtime.preferEnvContext) {
+    return {};
   }
 
   const envContext = {
@@ -530,23 +569,23 @@ function resolveRuntimeContext(
     workspace: process.env.OPENCLAW_WORKSPACE,
     session: process.env.OPENCLAW_SESSION,
   };
-
-  if (envContext.agentId || envContext.agentName || envContext.workspace || envContext.session) {
-    return envContext;
-  }
-
   const currentManagedAgent = readCurrentManagedAgent({
     runtimeStatePath: config.runtimeStatePath,
   });
-  if (!currentManagedAgent) {
-    return {};
-  }
+  const stateContext = currentManagedAgent
+    ? {
+        agentId: currentManagedAgent.agentId,
+        agentName: currentManagedAgent.agentName,
+        workspace: currentManagedAgent.workspace,
+        session: currentManagedAgent.session,
+      }
+    : {};
 
   return {
-    agentId: currentManagedAgent.agentId,
-    agentName: currentManagedAgent.agentName,
-    workspace: currentManagedAgent.workspace,
-    session: currentManagedAgent.session,
+    agentId: envContext.agentId ?? stateContext.agentId,
+    agentName: envContext.agentName ?? stateContext.agentName,
+    workspace: envContext.workspace ?? stateContext.workspace,
+    session: envContext.session ?? stateContext.session,
   };
 }
 
@@ -615,6 +654,19 @@ function buildRuntimeEvent(input: {
       status: 'ok',
       title: replaced ? '替换并开始目标' : '开始目标',
       summary: replaced ? `已替换当前目标并开始：${title}` : `已开始目标：${title}`,
+      detail: rawSummary,
+      createdAt,
+    };
+  }
+
+  if (input.kind === 'supervise_external_goal') {
+    const userMessage = readOptionalString(input.params.userMessage) ?? '外部目标';
+    return {
+      id,
+      kind: input.kind,
+      status: 'ok',
+      title: '外部目标接管',
+      summary: `已把外部任务接管为 GoalContract：${userMessage}`,
       detail: rawSummary,
       createdAt,
     };
@@ -826,6 +878,8 @@ function resolveRuntimeEventDefaultSummary(kind: GoalEngineRuntimeEvent['kind'])
   switch (kind) {
     case 'bootstrap':
       return '已同步 Goal Engine 与当前 OpenClaw 会话。';
+    case 'supervise_external_goal':
+      return '已把外部任务编译为 GoalContract。';
     case 'recover_current_goal':
       return '已请求恢复当前 goal。';
     case 'check_retry':
@@ -845,6 +899,8 @@ function resolveRuntimeEventErrorSummary(
       return `Goal Engine 启动失败：${message}`;
     case 'show_goal_status':
       return `读取 goal 状态失败：${message}`;
+    case 'supervise_external_goal':
+      return `接管外部目标失败：${message}`;
     default:
       return `${resolveRuntimeEventTitle(kind, 'error')}：${message}`;
   }

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export type ManagedOpenClawAgent = {
+type ManagedOpenClawAgent = {
   agentId: string;
   agentName: string;
   workspace: string;
@@ -10,7 +10,7 @@ export type ManagedOpenClawAgent = {
   managed: boolean;
 };
 
-export type GoalAlignmentSnapshot = {
+type GoalAlignmentSnapshot = {
   status: 'aligned' | 'blocked' | 'no_active_goal';
   expectedGoalTitle: string | null;
   activeGoalTitle: string | null;

@@ -27,6 +27,15 @@ const promoteKnowledgeSchema = z.object({
   confidence: z.number().min(0).max(1).default(0.5),
 });
 
+const promoteSimpleSchema = z.object({
+  visibility: z.enum(['private', 'agent', 'global']),
+  subject: z.string().min(1),
+  condition: z.record(z.unknown()).default({}),
+  summary: z.string().min(1),
+  recommendation: z.string().min(1),
+  confidence: z.number().min(0).max(1).default(0.5),
+});
+
 export function knowledgeRouter(
   goalRepo: GoalRepo,
   attemptRepo: AttemptRepo,
@@ -132,6 +141,78 @@ export function knowledgeRouter(
     });
 
     return c.json({ data: promotionToSnakeCase(promotion) }, 201);
+  });
+
+  router.post('/:knowledgeId/promote', zValidator('json', promoteSimpleSchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
+    }
+  }), (c) => {
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
+    const knowledgeId = c.req.param('knowledgeId');
+    const data = c.req.valid('json');
+
+    const validVisibilities = ['private', 'agent', 'global'];
+    if (!validVisibilities.includes(data.visibility)) {
+      return c.json({ error: { code: 'validation_error', message: 'Invalid visibility value' } }, 400);
+    }
+
+    const knowledge = knowledgeService.get(agentId, knowledgeId);
+    if (!knowledge) {
+      return c.json({ error: { code: 'not_found', message: 'Knowledge not found' } }, 404);
+    }
+
+    // If visibility is 'private', return the knowledge as-is with private visibility marker
+    if (data.visibility === 'private') {
+      const now = new Date().toISOString();
+      const virtualPromotion: KnowledgePromotion = {
+        id: knowledgeId,
+        knowledgeId,
+        visibility: 'private',
+        agentId,
+        subject: data.subject,
+        condition: data.condition,
+        summary: data.summary,
+        recommendation: data.recommendation,
+        confidence: data.confidence,
+        supportCount: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return c.json({ data: promotionToSnakeCase(virtualPromotion) }, 200);
+    }
+
+    // For 'agent' visibility, agent_id must match the requesting agent
+    if (data.visibility === 'agent') {
+      const promotion = knowledgeService.promote({
+        knowledgeId,
+        visibility: 'agent',
+        agentId,
+        subject: data.subject,
+        condition: data.condition,
+        summary: data.summary,
+        recommendation: data.recommendation,
+        confidence: data.confidence,
+      });
+      return c.json({ data: promotionToSnakeCase(promotion) }, 201);
+    }
+
+    // For 'global' visibility, agent_id must be null
+    if (data.visibility === 'global') {
+      const promotion = knowledgeService.promote({
+        knowledgeId,
+        visibility: 'global',
+        agentId: undefined,
+        subject: data.subject,
+        condition: data.condition,
+        summary: data.summary,
+        recommendation: data.recommendation,
+        confidence: data.confidence,
+      });
+      return c.json({ data: promotionToSnakeCase(promotion) }, 201);
+    }
+
+    return c.json({ error: { code: 'validation_error', message: 'Invalid visibility value' } }, 400);
   });
 
   return router;

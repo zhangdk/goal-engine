@@ -90,6 +90,7 @@ describe('Goal Engine OpenClaw plugin shell', () => {
     expect(tools.map((tool) => tool.name)).toEqual([
       'goal_engine_bootstrap',
       'goal_engine_start_goal',
+      'goal_engine_supervise_external_goal',
       'goal_engine_show_goal_status',
       'goal_engine_record_failed_attempt',
       'goal_engine_recover_current_goal',
@@ -140,6 +141,26 @@ describe('Goal Engine OpenClaw plugin shell', () => {
     expect(showGoalStatus?.properties).toEqual(
       expect.objectContaining({
         expectedGoalTitle: expect.any(Object),
+      })
+    );
+  });
+
+  it('exposes userMessage on the supervise-external-goal tool schema', async () => {
+    const mod = await import(pluginEntryPath);
+    const plugin = mod.default;
+
+    const tools = new Map();
+    plugin.register({
+      registerTool(tool: { name: string; parameters: { properties?: Record<string, unknown> } }) {
+        tools.set(tool.name, tool.parameters);
+      },
+    });
+
+    const superviseExternalGoal = tools.get('goal_engine_supervise_external_goal');
+    expect(superviseExternalGoal?.properties).toEqual(
+      expect.objectContaining({
+        userMessage: expect.any(Object),
+        replaceActiveGoal: expect.any(Object),
       })
     );
   });
@@ -297,6 +318,20 @@ describe('Goal Engine OpenClaw plugin shell', () => {
 
     expect(hookHandler).toBeDefined();
     expect(hookHandler!({ toolName: 'web_search' })).toEqual({
+      block: true,
+      message: [
+        'Goal Engine external-tool guard: A goal was started or replaced. Confirm alignment with goal_engine_show_goal_status before any external tool use.',
+        'Next action: Call goal_engine_show_goal_status with expectedGoalTitle before search, browsing, or external execution.',
+      ].join('\n'),
+    });
+    expect(hookHandler!({ toolName: 'message' })).toEqual({
+      block: true,
+      message: [
+        'Goal Engine external-tool guard: A goal was started or replaced. Confirm alignment with goal_engine_show_goal_status before any external tool use.',
+        'Next action: Call goal_engine_show_goal_status with expectedGoalTitle before search, browsing, or external execution.',
+      ].join('\n'),
+    });
+    expect(hookHandler!({ toolName: 'feishu_chat' })).toEqual({
       block: true,
       message: [
         'Goal Engine external-tool guard: A goal was started or replaced. Confirm alignment with goal_engine_show_goal_status before any external tool use.',
@@ -645,6 +680,86 @@ describe('Goal Engine OpenClaw plugin shell', () => {
           summary: '当前任务“帮我在上海浦东张江找一个摄影棚”尚未被 Goal Engine 接管。',
         }),
       ])
+    );
+  });
+
+  it('fills missing runtime identity from the current managed agent when tool calls pass partial runtime parameters', async () => {
+    const execFileMock = vi.fn((file, args, options, callback) => {
+      callback(null, {
+        stdout: JSON.stringify({
+          summary: 'Failed attempt recorded.',
+        }),
+        stderr: '',
+      });
+    });
+
+    vi.doMock('node:child_process', () => ({
+      execFile: execFileMock,
+    }));
+
+    const mod = await import(pluginEntryPath);
+    const plugin = mod.default;
+    const stateDir = createTempDir('goal-engine-runtime-context-partial-');
+    const runtimeStatePath = resolve(stateDir, 'runtime-state.json');
+    writeFileSync(runtimeStatePath, JSON.stringify({
+      goalEngine: {
+        currentManagedAgentId: 'main',
+        managedAgents: [
+          {
+            agentId: 'main',
+            agentName: 'Main Orchestrator',
+            workspace: '/Users/gushuai/.openclaw/workspace',
+            session: '7c387ca6-1744-4ceb-825a-3b70c44a62e5',
+            managed: true,
+          },
+        ],
+        goalAlignmentSnapshots: {},
+        externalToolGuards: {},
+        runtimeEvents: {},
+      },
+    }, null, 2), 'utf-8');
+
+    const tools = new Map<string, { execute: (_toolCallId: string, params: Record<string, unknown>) => Promise<unknown> }>();
+    plugin.register({
+      config: {
+        plugins: {
+          entries: {
+            'goal-engine': {
+              config: {
+                runtimeStatePath,
+              },
+            },
+          },
+        },
+      },
+      registerTool(tool: { name: string; execute: (_toolCallId: string, params: Record<string, unknown>) => Promise<unknown> }) {
+        tools.set(tool.name, tool);
+      },
+    });
+
+    await tools.get('goal_engine_record_failed_attempt')!.execute('call-1', {
+      workspace: '/Users/gushuai/.openclaw/workspace',
+      session: 'main',
+      stage: 'channel-selection',
+      actionTaken: 'Feishu send failed',
+      strategyTags: ['feishu'],
+      failureType: 'external_blocker',
+    });
+
+    expect(execFileMock).toHaveBeenCalledWith(
+      'pnpm',
+      expect.arrayContaining([
+        '--agent-id',
+        'main',
+        '--agent-name',
+        'Main Orchestrator',
+        '--workspace',
+        '/Users/gushuai/.openclaw/workspace',
+        '--session',
+        'main',
+      ]),
+      expect.any(Object),
+      expect.any(Function)
     );
   });
 });

@@ -1,7 +1,7 @@
 import type { Attempt, Policy, RetryCheckEvent } from '../../../shared/types.js';
 import type { GoalEngineRuntimeEvent } from './managed-openclaw-agents.js';
 
-export type PathSnapshot = {
+type PathSnapshot = {
   evidenceId: string;
   key: string;
   label: string;
@@ -214,7 +214,7 @@ function createPathSnapshot(input: {
   };
 }
 
-export function inferPathLabel(raw: string, strategyTags: string[]): string {
+function inferPathLabel(raw: string, strategyTags: string[]): string {
   const searchable = [raw, ...strategyTags].join(' | ');
 
   for (const entry of PATH_PATTERNS) {

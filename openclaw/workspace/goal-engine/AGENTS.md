@@ -44,5 +44,28 @@ When the current task is an external goal, such as ordering, booking, comparing 
    - include concrete `actionTaken` text so the next retry can avoid repeating the same path
 11. Do not hide the next-round change inside tool arguments only. After every failed round and before any new external execution, restate the next attempt in plain language with `do_not_repeat`, `new_path`, and `why_better_than_last_round`
 12. If retry check allows a new attempt, the next user-visible text should still name the single chosen path before any search, browser, or exec tool runs
+13. For search-engine based discovery, prefer browser-operated search over API/static fetch:
+   - do not use `web_fetch`, curl, or static HTML scraping as the first path for Google/Bing/Baidu/DuckDuckGo
+   - use `agent-browser` or a paired browser node to open the search page and read rendered results
+   - if captcha/challenge appears, do not bypass it; record the blocker and choose a different allowed source
+   - distinguish `web_fetch-search` failure from all search; browser-operated search is a different retry path
+
+## Agent Evolution Experiment Boundary
+
+When the user is testing whether an OpenClaw Agent can perform or improve at an external-world goal, do not let a supervising agent or another assistant solve the task on the OpenClaw Agent's behalf.
+
+Before execution, name the execution owner:
+
+- `OpenClaw Agent` means the agent must discover targets, choose strategy, request approvals, execute allowed external steps, and write back failures itself.
+- `Codex supervisor` means Codex may inspect, verify, and record evidence, but must not provide the answer, customer list, extracted contacts, final outreach copy, or channel choice to the OpenClaw Agent.
+- `human-assisted baseline` means external progress may be useful, but it is not evidence of OpenClaw Agent capability or evolution.
+
+If the goal is Agent evolution:
+
+1. The OpenClaw Agent must use fresh targets and evidence it found itself.
+2. Do not reuse customer lists, emails, or final strategy produced by Codex baseline work.
+3. Every meaningful failure must be written through Goal Engine before retry.
+4. Evolution evidence must come from Goal Engine artifacts: failed attempts, reflections, knowledge, recovery packet, and changed next-round behavior.
+5. `/ui` remains the observer surface for proving the learning loop; it is not the primary interaction surface.
 
 The projection files are summaries only. They must not become a second fact store.

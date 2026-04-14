@@ -30,7 +30,7 @@ import type { PolicyRepo } from '../repos/policy.repo.js';
 import { DEFAULT_AGENT_ID } from '../agent-context.js';
 import type { KnowledgeService } from './knowledge.service.js';
 
-export type WriteReflectionInput = {
+type WriteReflectionInput = {
   reflectionId?: string;
   agentId?: string;
   goalId: string;
@@ -42,7 +42,7 @@ export type WriteReflectionInput = {
   createdAt: string;
 };
 
-export type WriteReflectionResult = {
+type WriteReflectionResult = {
   reflection: Reflection;
   policy: Policy;
   knowledge?: Knowledge;

@@ -30,6 +30,7 @@ export type GoalEngineRuntimeEvent = {
   id: string;
   kind:
     | 'bootstrap'
+    | 'supervise_external_goal'
     | 'start_goal'
     | 'show_goal_status'
     | 'record_failed_attempt'

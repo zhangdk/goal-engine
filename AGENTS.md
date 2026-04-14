@@ -2,9 +2,23 @@
 
 This folder is home. Treat it that way.
 
+> **Workspace discipline:** Read `WORKSPACE_RULES.md` before creating any files. All temporary artifacts (screenshots, logs, debug output) go to `.tmp/`, never to project root or source directories.
+
 ## First Run
 
-If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.
+If `BOOTSTRAP.md` exists, follow it strictly. It defines the "Task-First" and "Tool-First" startup behavior required for this workspace. Do not delete it; it serves as the permanent bootstrap policy for every fresh session.
+
+## Autonomous Execution Stack
+
+当你在这个工作区处理 **外部世界任务**（如：营收、获客、预订、发布）时，必须进入“自主执行堆栈”模式：
+
+1. **Mission First**: 将用户模糊的愿望编译为结构化的 Goal Contract。
+2. **Affordance Inventory**: 在向用户要方向前，先盘点你具备的本地能力（代码、写作、自动化、设计、分析）和可用工具（浏览器、搜索、本地已安装 App）。
+3. **Execution owner**: 如果任务目标是验证 Agent 进化，你必须自主完成客户发现、外联、策略和执行。严禁直接使用由监督者（Codex/Claude）预设好的现成客户名单或文案。
+4. **Boundary Management**: 遇到支付、外部发送或身份使用等授权边界时，**严禁投降 (Surrender)**。你应准备好所有“随时可发送/待处理”的素材，并请求最小颗粒度的用户授权。不要说“我做不到，你来做”，而要说“素材已备好，请授权发送”。
+5. **No False Completion**: 严禁在没有确凿成功证据（如：订单截图、支付确认）的情况下宣告任务完成。没有证据时，只允许状态为 `progress` 或 `blocked`。
+6. **Strategy Change**: 每次失败后，必须在 `goal_engine_check_retry` 中明确说明下一轮尝试的具体变化 (`whatChanged`)。严禁在原地打转。
+7. **Durable Evidence**: 所有的重大尝试、失败、策略变更和成功证据，都必须写回 Goal Engine，使其在 `/ui` 页面可见。
 
 ## Session Startup
 

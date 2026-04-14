@@ -16,6 +16,7 @@ export { parseOpenClawCliArgs, runOpenClawCli } from './openclaw/cli.js';
 export { startGoalSession } from './workflows/start-goal-session.js';
 export { showGoalStatus } from './workflows/show-goal-status.js';
 export { recordFailureAndRefresh } from './workflows/record-failure-and-refresh.js';
+export { superviseExternalGoal, compileGoalContract } from './workflows/supervise-external-goal.js';
 export { recoverGoalSession } from './workflows/recover-goal-session.js';
 export { checkRetryAndExplain } from './workflows/check-retry-and-explain.js';
 export { DEFAULT_SERVICE_URL } from './config.js';

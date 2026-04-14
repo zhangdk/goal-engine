@@ -101,4 +101,12 @@ export class KnowledgePromotionRepo {
     `).all(...params) as KnowledgePromotionRow[];
     return rows.map(rowToPromotion);
   }
+
+  incrementSupportCount(promotionId: string): void {
+    this.db.prepare(`
+      UPDATE knowledge_promotions
+      SET support_count = support_count + 1, updated_at = ?
+      WHERE id = ?
+    `).run(new Date().toISOString(), promotionId);
+  }
 }

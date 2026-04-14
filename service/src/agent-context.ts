@@ -1,4 +1,4 @@
-export type AgentContext = {
+type AgentContext = {
   agentId: string;
 };
 

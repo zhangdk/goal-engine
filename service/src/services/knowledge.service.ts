@@ -3,7 +3,7 @@ import type { Knowledge, KnowledgePromotion, KnowledgeVisibility } from '../../.
 import type { KnowledgeRepo } from '../repos/knowledge.repo.js';
 import type { KnowledgePromotionRepo } from '../repos/knowledge-promotion.repo.js';
 
-export type CreateKnowledgeFromReflectionInput = {
+type CreateKnowledgeFromReflectionInput = {
   agentId: string;
   goalId: string;
   attemptId: string;
@@ -16,12 +16,12 @@ export type CreateKnowledgeFromReflectionInput = {
   createdAt: string;
 };
 
-export type CreateKnowledgeInput = Omit<Knowledge, 'id' | 'createdAt'> & {
+type CreateKnowledgeInput = Omit<Knowledge, 'id' | 'createdAt'> & {
   id?: string;
   createdAt?: string;
 };
 
-export type PromoteKnowledgeInput = {
+type PromoteKnowledgeInput = {
   id?: string;
   knowledgeId: string;
   visibility: KnowledgeVisibility;
@@ -107,5 +107,41 @@ export class KnowledgeService {
 
   listSharedWisdom(agentId: string, goalId: string | undefined, subjects: string[], limit = 20): KnowledgePromotion[] {
     return this.promotionRepo.listSharedForAgent(agentId, goalId, subjects, limit);
+  }
+
+  /**
+   * Records a reference to knowledge by incrementing the support count of an existing
+   * 'agent' promotion, or creating one automatically if none exists.
+   */
+  recordReference(knowledgeId: string, agentId: string): void {
+    // Try to find existing 'agent' promotion for this knowledge and agent
+    const existingPromotions = this.promotionRepo.listSharedForAgent(agentId, undefined, [], 100);
+    const existingAgentPromotion = existingPromotions.find(
+      (p) => p.knowledgeId === knowledgeId && p.visibility === 'agent' && p.agentId === agentId
+    );
+
+    if (existingAgentPromotion) {
+      // Increment support count
+      this.promotionRepo.incrementSupportCount(existingAgentPromotion.id);
+    } else {
+      // Create a new 'agent' promotion automatically
+      const knowledge = this.knowledgeRepo.getById(agentId, knowledgeId);
+      if (knowledge) {
+        const summary = knowledge.observation.length > 200
+          ? knowledge.observation.substring(0, 200)
+          : knowledge.observation;
+        this.promote({
+          knowledgeId,
+          visibility: 'agent',
+          agentId,
+          subject: 'general',
+          condition: {},
+          summary,
+          recommendation: knowledge.implication,
+          confidence: 0.5,
+          supportCount: 1,
+        });
+      }
+    }
   }
 }

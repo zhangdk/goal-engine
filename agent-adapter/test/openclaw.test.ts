@@ -280,6 +280,95 @@ describe('dispatchEntrypoint', () => {
     expect(sentBody.failure_type).toBe('external_blocker');
   });
 
+  it('supervises a rough revenue goal by compiling it into an executable goal contract', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          data: {
+            id: 'goal_revenue_1',
+            title: 'Revenue Sprint: earn 100 RMB within 24 hours',
+            status: 'active',
+            success_criteria: [
+              'Confirmed revenue is at least 100 RMB before the deadline.',
+              'Completion requires payment, order confirmation, or user-confirmed equivalent value.',
+            ],
+            stop_conditions: [
+              'Stop before sending messages, posting publicly, using user identity, or handling payment without explicit authorization.',
+            ],
+            priority: 1,
+            current_stage: 'goal-contract',
+            created_at: '2026-04-13T07:18:32.373Z',
+            updated_at: '2026-04-13T07:18:32.373Z',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            agent_id: 'main',
+            goal_id: 'goal_revenue_1',
+            goal_title: 'Revenue Sprint: earn 100 RMB within 24 hours',
+            current_stage: 'goal-contract',
+            success_criteria: [
+              'Confirmed revenue is at least 100 RMB before the deadline.',
+              'Completion requires payment, order confirmation, or user-confirmed equivalent value.',
+            ],
+            avoid_strategies: [],
+            recent_attempts: [],
+            relevant_knowledge: [],
+            shared_wisdom: [],
+            open_questions: [],
+            generated_at: '2026-04-13T07:18:32.373Z',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          error: { code: 'no_policy_yet', message: 'No policy yet' },
+        }),
+      });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const projectionDir = createTempDir('goal-engine-supervise-external-');
+
+    const result = await dispatchEntrypoint(client, {
+      entrypoint: 'supervise external goal',
+      input: {
+        userMessage: '给你个任务，你要在一天内赚100元，方法不限。',
+        receivedAt: '2026-04-13T07:18:32.373Z',
+        replaceActiveGoal: true,
+        projectionDir,
+      },
+    });
+
+    expect(result.entrypoint).toBe('supervise external goal');
+    expect(result.summary).toContain('External goal supervised.');
+    expect(result.summary).toContain('Goal contract: Revenue Sprint: earn 100 RMB within 24 hours');
+    expect(result.summary).toContain('Do not ask the user to choose the strategy.');
+    expect(result.summary).toContain('Next required action: call show goal status');
+
+    const createCall = fetch.mock.calls[0];
+    expect(createCall?.[0]).toBe(`${BASE_URL}/api/v1/goals`);
+    const sentBody = JSON.parse(String(createCall?.[1] && (createCall[1] as RequestInit).body));
+    expect(sentBody.replace_active).toBe(true);
+    expect(sentBody.current_stage).toBe('goal-contract');
+    expect(sentBody.success_criteria).toEqual(expect.arrayContaining([
+      'Confirmed revenue is at least 100 RMB before the deadline.',
+      'Completion requires payment, order confirmation, or user-confirmed equivalent value.',
+      'Each attempt must produce external evidence, a concrete sales asset, a channel result, or a recorded permission boundary.',
+    ]));
+    expect(sentBody.stop_conditions).toEqual(expect.arrayContaining([
+      'Stop before sending messages, posting publicly, using user identity, or handling payment without explicit authorization.',
+    ]));
+  });
+
   it('resolves recover current goal through the active goal and rebuilds projection when missing', async () => {
     const fetch = vi
       .fn()

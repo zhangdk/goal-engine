@@ -25,6 +25,10 @@ service/*.db
 service/*.db-shm
 service/*.db-wal
 
+# Local data and private memory
+memory/
+.agents/
+
 # Runtime state and local tool output
 .openclaw/runtime-state.json
 agent-adapter/.openclaw/runtime-state.json
@@ -34,9 +38,10 @@ agent-adapter/.openclaw/runtime-state.json
 service/test-results/
 service/*.db.backup-*
 
-# Screenshots and ad-hoc browser artifacts
-*.png
+# Temporary artifacts (screenshots, logs, snapshots)
+# These must live in .tmp/ — see WORKSPACE_RULES.md
 *.log
+.tmp/
 
 # OS/editor noise
 .DS_Store
