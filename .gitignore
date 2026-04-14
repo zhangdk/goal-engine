@@ -25,9 +25,11 @@ service/*.db
 service/*.db-shm
 service/*.db-wal
 
-# Local data and private memory
+# Local data, documentation, and private memory
 memory/
 .agents/
+.learnings/
+docs/
 
 # Runtime state and local tool output
 .openclaw/runtime-state.json
