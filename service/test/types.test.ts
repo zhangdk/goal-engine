@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type GoalContract,
+  type AttemptEvidence,
+  type GoalCompletion,
   type Knowledge,
   type KnowledgePromotion,
   type RecoveryPacket,
@@ -105,5 +108,50 @@ describe('shared frozen enums', () => {
 
     expect(packet.relevantKnowledge[0].id).toBe('know_1');
     expect(retryResult.allowed).toBe(true);
+  });
+
+  it('models goal contracts, evidence, and evidence-referenced completion', () => {
+    const contract: GoalContract = {
+      id: 'contract_1',
+      agentId: 'agent-a',
+      goalId: 'goal-a',
+      outcome: 'Earn 100 RMB',
+      successEvidence: ['Payment confirmation exists'],
+      deadlineAt: '2026-04-18T00:00:00.000Z',
+      autonomyLevel: 2,
+      boundaryRules: ['Ask before payment'],
+      stopConditions: ['No deception'],
+      strategyGuidance: ['Prefer fast validation'],
+      permissionBoundary: ['External sending requires approval'],
+      createdAt: '2026-04-17T00:00:00.000Z',
+      updatedAt: '2026-04-17T00:00:00.000Z'
+    };
+
+    const evidence: AttemptEvidence = {
+      id: 'evidence_1',
+      agentId: 'agent-a',
+      goalId: 'goal-a',
+      attemptId: 'attempt-a',
+      kind: 'artifact',
+      summary: 'Created sales page draft',
+      filePath: 'artifacts/sales-page.md',
+      observedAt: '2026-04-17T00:01:00.000Z',
+      verifier: 'agent',
+      confidence: 0.8,
+      createdAt: '2026-04-17T00:01:00.000Z'
+    };
+
+    const completion: GoalCompletion = {
+      id: 'completion_1',
+      agentId: 'agent-a',
+      goalId: 'goal-a',
+      evidenceIds: [evidence.id],
+      summary: 'Goal completed with evidence',
+      completedAt: '2026-04-17T00:02:00.000Z'
+    };
+
+    expect(contract.successEvidence).toEqual(['Payment confirmation exists']);
+    expect(evidence.kind).toBe('artifact');
+    expect(completion.evidenceIds).toEqual(['evidence_1']);
   });
 });

@@ -24,6 +24,24 @@ export type Goal = {
   updatedAt: string;
 };
 
+export type AutonomyLevel = 0 | 1 | 2 | 3 | 4;
+
+export type GoalContract = {
+  id: string;
+  agentId: string;
+  goalId: string;
+  outcome: string;
+  successEvidence: string[];
+  deadlineAt?: string;
+  autonomyLevel: AutonomyLevel;
+  boundaryRules: string[];
+  stopConditions: string[];
+  strategyGuidance: string[];
+  permissionBoundary: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Attempt = {
   id: string;
   agentId: string;
@@ -36,6 +54,46 @@ export type Attempt = {
   confidence?: number;
   nextHypothesis?: string;
   createdAt: string;
+};
+
+export type AttemptEvidenceKind =
+  | 'artifact'
+  | 'external_fact'
+  | 'channel_check'
+  | 'permission_boundary'
+  | 'reply'
+  | 'payment'
+  | 'blocker';
+
+export type AttemptEvidenceVerifier =
+  | 'agent'
+  | 'user'
+  | 'service'
+  | 'browser';
+
+export type AttemptEvidence = {
+  id: string;
+  agentId: string;
+  goalId: string;
+  attemptId?: string;
+  kind: AttemptEvidenceKind;
+  summary: string;
+  uri?: string;
+  filePath?: string;
+  toolName?: string;
+  observedAt: string;
+  verifier: AttemptEvidenceVerifier;
+  confidence: number;
+  createdAt: string;
+};
+
+export type GoalCompletion = {
+  id: string;
+  agentId: string;
+  goalId: string;
+  evidenceIds: string[];
+  summary: string;
+  completedAt: string;
 };
 
 export type Reflection = {
