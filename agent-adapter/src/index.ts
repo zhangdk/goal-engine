@@ -2,6 +2,8 @@ export { AdapterClient } from './client.js';
 export { goalCreate } from './tools/goal-create.js';
 export { goalGetCurrent } from './tools/goal-get-current.js';
 export { attemptAppend } from './tools/attempt-append.js';
+export { evidenceRecord } from './tools/evidence-record.js';
+export { goalComplete } from './tools/goal-complete.js';
 export { reflectionCreate } from './tools/reflection-create.js';
 export { reflectionGenerate } from './tools/reflection-generate.js';
 export { policyGetCurrent } from './tools/policy-get-current.js';

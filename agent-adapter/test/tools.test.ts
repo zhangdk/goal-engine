@@ -10,8 +10,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AdapterClient } from '../src/client.js';
+import { goalCreate } from '../src/tools/goal-create.js';
 import { goalGetCurrent } from '../src/tools/goal-get-current.js';
 import { attemptAppend } from '../src/tools/attempt-append.js';
+import { evidenceRecord } from '../src/tools/evidence-record.js';
+import { goalComplete } from '../src/tools/goal-complete.js';
 import { reflectionGenerate } from '../src/tools/reflection-generate.js';
 import { retryGuardCheck } from '../src/tools/retry-guard-check.js';
 import { recoveryPacketGet } from '../src/tools/recovery-packet-get.js';
@@ -71,6 +74,57 @@ describe('AdapterClient', () => {
     const [, init] = fetch.mock.calls[0] as [string, RequestInit];
     const headers = new Headers(init.headers);
     expect(headers.get('X-Agent-Id')).toBe('agent-a');
+  });
+});
+
+describe('goalCreate contract mapping', () => {
+  it('serializes optional contract to snake_case', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        id: 'goal_1',
+        title: 'Goal with contract',
+        status: 'active',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        priority: 1,
+        current_stage: 'goal-contract',
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        contract: {
+          id: 'contract_1',
+          goal_id: 'goal_1',
+          outcome: 'Outcome',
+          success_evidence: ['Evidence exists'],
+          autonomy_level: 2,
+          boundary_rules: [],
+          stop_conditions: [],
+          strategy_guidance: [],
+          permission_boundary: [],
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+
+    await goalCreate(client, {
+      title: 'Goal with contract',
+      successCriteria: ['Evidence exists'],
+      currentStage: 'goal-contract',
+      contract: {
+        outcome: 'Outcome',
+        successEvidence: ['Evidence exists'],
+        autonomyLevel: 2,
+        boundaryRules: [],
+        stopConditions: [],
+        strategyGuidance: [],
+        permissionBoundary: [],
+      },
+    });
+
+    const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.contract.success_evidence).toEqual(['Evidence exists']);
+    expect(callBody.contract.autonomy_level).toBe(2);
   });
 });
 
@@ -148,6 +202,82 @@ describe('attemptAppend', () => {
     // 返回结果是 camelCase
     expect(result.id).toBe('attempt_1');
     expect(result.goalId).toBe('goal_1');
+  });
+});
+
+describe('evidenceRecord', () => {
+  it('serializes evidence request and parses response', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        id: 'evidence_1',
+        goal_id: 'goal_1',
+        attempt_id: 'attempt_1',
+        kind: 'artifact',
+        summary: 'Artifact created',
+        file_path: 'artifact.md',
+        observed_at: '2026-01-01T00:00:00.000Z',
+        verifier: 'agent',
+        confidence: 0.8,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+
+    const evidence = await evidenceRecord(client, {
+      goalId: 'goal_1',
+      attemptId: 'attempt_1',
+      kind: 'artifact',
+      summary: 'Artifact created',
+      filePath: 'artifact.md',
+      observedAt: '2026-01-01T00:00:00.000Z',
+      verifier: 'agent',
+      confidence: 0.8,
+    });
+
+    const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.goal_id).toBe('goal_1');
+    expect(callBody.file_path).toBe('artifact.md');
+    expect(evidence.filePath).toBe('artifact.md');
+  });
+});
+
+describe('goalComplete', () => {
+  it('serializes evidence ids and parses completed goal response', async () => {
+    const fetch = mockFetch(200, {
+      data: {
+        goal: {
+          id: 'goal_1',
+          title: 'Goal',
+          status: 'completed',
+          success_criteria: ['Evidence exists'],
+          stop_conditions: [],
+          priority: 1,
+          current_stage: 'done',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+        completion: {
+          id: 'completion_1',
+          goal_id: 'goal_1',
+          evidence_ids: ['evidence_1'],
+          summary: 'Done',
+          completed_at: '2026-01-01T00:00:00.000Z',
+        },
+        evidence: [],
+      },
+    });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+
+    const result = await goalComplete(client, {
+      goalId: 'goal_1',
+      evidenceIds: ['evidence_1'],
+      summary: 'Done',
+    });
+
+    const [url, init] = fetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE_URL}/api/v1/goals/goal_1/complete`);
+    expect(JSON.parse(init.body as string).evidence_ids).toEqual(['evidence_1']);
+    expect(result.goal.status).toBe('completed');
   });
 });
 
