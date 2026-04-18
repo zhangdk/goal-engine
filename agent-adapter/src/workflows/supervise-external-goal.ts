@@ -14,6 +14,9 @@ export type GoalContract = {
   successCriteria: string[];
   stopConditions: string[];
   currentStage: string;
+  deadlineAt?: string;
+  autonomyLevel: 0 | 1 | 2 | 3 | 4;
+  boundaryRules: string[];
   strategyGuidance: string[];
   permissionBoundary: string[];
 };
@@ -37,6 +40,16 @@ export async function superviseExternalGoal(
     priority: 1,
     replaceActiveGoal: input.replaceActiveGoal,
     projectionDir: input.projectionDir,
+    contract: {
+      outcome: contract.title,
+      successEvidence: contract.successCriteria,
+      deadlineAt: contract.deadlineAt,
+      autonomyLevel: contract.autonomyLevel,
+      boundaryRules: contract.boundaryRules,
+      stopConditions: contract.stopConditions,
+      strategyGuidance: contract.strategyGuidance,
+      permissionBoundary: contract.permissionBoundary,
+    },
   });
 
   return {
@@ -49,6 +62,9 @@ export async function superviseExternalGoal(
 export function compileGoalContract(input: SuperviseExternalGoalInput): GoalContract {
   const message = input.userMessage.trim();
   const deadlineHours = input.deadlineHours ?? inferDeadlineHours(message) ?? 24;
+  const deadlineAt = input.receivedAt
+    ? new Date(new Date(input.receivedAt).getTime() + deadlineHours * 60 * 60 * 1000).toISOString()
+    : undefined;
 
   if (isRevenueGoal(message)) {
     const amount = inferRevenueAmount(message) ?? 100;
@@ -60,6 +76,12 @@ export function compileGoalContract(input: SuperviseExternalGoalInput): GoalCont
         `Confirmed revenue is at least ${amount} ${currency} before the deadline.`,
         'Completion requires payment, order confirmation, or user-confirmed equivalent value.',
         'Each attempt must produce external evidence, a concrete sales asset, a channel result, or a recorded permission boundary.',
+      ],
+      deadlineAt,
+      autonomyLevel: 2,
+      boundaryRules: [
+        'Local research, drafting, target lists, and artifact creation are autonomous.',
+        'Private messages, public posts, user-identity actions, payment, and contracts require explicit authorization.',
       ],
       stopConditions: [
         'Stop before sending messages, posting publicly, using user identity, or handling payment without explicit authorization.',
@@ -84,8 +106,14 @@ export function compileGoalContract(input: SuperviseExternalGoalInput): GoalCont
     successCriteria: [
       'The external-world outcome is completed with verifiable evidence.',
       'Each attempt must produce external evidence, a concrete artifact, a channel result, or a recorded permission boundary.',
-    ],
-    stopConditions: [
+      ],
+      deadlineAt,
+      autonomyLevel: 2,
+      boundaryRules: [
+        'Local analysis and artifact preparation are autonomous.',
+        'External sending, public posting, identity use, payment, and legal commitments require explicit authorization.',
+      ],
+      stopConditions: [
       'Stop before sending messages, posting publicly, using user identity, or handling payment without explicit authorization.',
       'Do not claim completion without success evidence.',
     ],

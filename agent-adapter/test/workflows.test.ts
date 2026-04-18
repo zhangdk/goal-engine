@@ -9,6 +9,7 @@ import { showGoalStatus } from '../src/workflows/show-goal-status.js';
 import { recordFailureAndRefresh } from '../src/workflows/record-failure-and-refresh.js';
 import { recoverGoalSession } from '../src/workflows/recover-goal-session.js';
 import { checkRetryAndExplain } from '../src/workflows/check-retry-and-explain.js';
+import { superviseExternalGoal } from '../src/workflows/supervise-external-goal.js';
 
 const BASE_URL = 'http://localhost:3100';
 const tempDirs: string[] = [];
@@ -156,6 +157,87 @@ describe('startGoalSession', () => {
     expect(result.summary).toContain('Current active goal: Old Goal');
     expect(result.summary).toContain('Requested goal: New Goal');
     expect(result.summary).toContain('Use replaceActiveGoal to explicitly replace it');
+  });
+});
+
+describe('superviseExternalGoal', () => {
+  it('persists the compiled goal contract when supervising an external goal', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          data: {
+            id: 'goal_1',
+            title: 'Revenue Sprint: earn 100 RMB within 24 hours',
+            status: 'active',
+            success_criteria: ['Confirmed revenue is at least 100 RMB before the deadline.'],
+            stop_conditions: [],
+            priority: 1,
+            current_stage: 'goal-contract',
+            created_at: '2026-01-01T00:00:00.000Z',
+            updated_at: '2026-01-01T00:00:00.000Z',
+            contract: {
+              id: 'contract_1',
+              goal_id: 'goal_1',
+              outcome: 'Revenue Sprint: earn 100 RMB within 24 hours',
+              success_evidence: ['Confirmed revenue is at least 100 RMB before the deadline.'],
+              autonomy_level: 2,
+              boundary_rules: [],
+              stop_conditions: [],
+              strategy_guidance: [],
+              permission_boundary: [],
+              created_at: '2026-01-01T00:00:00.000Z',
+              updated_at: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            goal_id: 'goal_1',
+            goal_title: 'Revenue Sprint: earn 100 RMB within 24 hours',
+            current_stage: 'goal-contract',
+            success_criteria: ['Confirmed revenue is at least 100 RMB before the deadline.'],
+            avoid_strategies: [],
+            recent_attempts: [],
+            relevant_knowledge: [],
+            shared_wisdom: [],
+            open_questions: [],
+            generated_at: '2026-01-01T00:00:00.000Z',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          error: { code: 'no_policy_yet', message: 'No policy yet' },
+        }),
+      });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const projectionDir = createTempProjectionDir();
+
+    await superviseExternalGoal(client, {
+      userMessage: '赚 100 RMB within one day',
+      projectionDir,
+    });
+
+    const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody).toMatchObject({
+      contract: {
+        outcome: expect.stringContaining('Revenue Sprint'),
+        success_evidence: expect.arrayContaining([
+          expect.stringContaining('Confirmed revenue'),
+        ]),
+        autonomy_level: 2,
+      },
+    });
   });
 });
 

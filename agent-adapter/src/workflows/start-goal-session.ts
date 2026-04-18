@@ -1,5 +1,5 @@
 import type { AdapterClient } from '../client.js';
-import { goalCreate } from '../tools/goal-create.js';
+import { goalCreate, type GoalContractInput } from '../tools/goal-create.js';
 import { goalGetCurrent } from '../tools/goal-get-current.js';
 import { refreshProjections } from '../projections/refresh-projections.js';
 
@@ -11,6 +11,7 @@ export type StartGoalSessionInput = {
   priority?: number;
   replaceActiveGoal?: boolean;
   projectionDir?: string;
+  contract?: GoalContractInput;
 };
 
 export type StartGoalSessionResult = {
