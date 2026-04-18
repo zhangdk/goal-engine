@@ -169,6 +169,8 @@ export type RecoveryPacket = {
   goalTitle: string;
   currentStage: string;
   successCriteria: string[];
+  contract?: GoalContract;
+  completion?: GoalCompletion;
   lastMeaningfulProgress?: string;
   lastFailureSummary?: string;
   /** @deprecated Prefer relevantKnowledge and sharedWisdom. */

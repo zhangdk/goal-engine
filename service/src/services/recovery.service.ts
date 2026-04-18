@@ -21,6 +21,8 @@ import type { Attempt, RecoveryPacket, RecoveryPacketRecentAttempt } from '../..
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
 import type { PolicyRepo } from '../repos/policy.repo.js';
+import type { GoalContractRepo } from '../repos/goal-contract.repo.js';
+import type { GoalCompletionRepo } from '../repos/goal-completion.repo.js';
 import { DEFAULT_AGENT_ID } from '../agent-context.js';
 import type { KnowledgeService } from './knowledge.service.js';
 
@@ -29,6 +31,8 @@ export class RecoveryService {
     private goalRepo: GoalRepo,
     private attemptRepo: AttemptRepo,
     private policyRepo: PolicyRepo,
+    private goalContractRepo: GoalContractRepo,
+    private goalCompletionRepo: GoalCompletionRepo,
     private knowledgeService: KnowledgeService
   ) {}
 
@@ -45,6 +49,8 @@ export class RecoveryService {
     if (!goal) return null;
 
     const policy = this.policyRepo.getByGoal(agentId, goalId);
+    const contract = this.goalContractRepo.getByGoal(agentId, goalId) ?? undefined;
+    const completion = this.goalCompletionRepo.getByGoal(agentId, goalId) ?? undefined;
     const latestProgress = this.attemptRepo.getLatestMeaningfulProgress(agentId, goalId);
     const latestFailure = this.attemptRepo.getLatestFailure(agentId, goalId);
     const recentAttempts = this.attemptRepo.listByGoal(agentId, goalId, { limit: 5 });
@@ -67,6 +73,8 @@ export class RecoveryService {
       goalTitle: goal.title,
       currentStage: goal.currentStage,
       successCriteria: goal.successCriteria,
+      contract,
+      completion,
       lastMeaningfulProgress: latestProgress?.actionTaken,
       lastFailureSummary: latestFailure?.actionTaken,
       avoidStrategies: policy?.avoidStrategies ?? [],

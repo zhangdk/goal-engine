@@ -3,6 +3,8 @@ import type {
   Knowledge,
   KnowledgePromotion,
   KnowledgeVisibility,
+  GoalCompletion,
+  GoalContract,
   RecoveryPacket,
   RecoveryPacketCurrentPolicy,
   RecoveryPacketRecentAttempt,
@@ -14,6 +16,25 @@ type RecoverySnake = {
   goal_title: string;
   current_stage: string;
   success_criteria: string[];
+  contract?: {
+    id: string;
+    outcome: string;
+    success_evidence: string[];
+    deadline_at?: string;
+    autonomy_level: number;
+    boundary_rules: string[];
+    stop_conditions: string[];
+    strategy_guidance: string[];
+    permission_boundary: string[];
+    created_at?: string;
+    updated_at?: string;
+  };
+  completion?: {
+    id: string;
+    evidence_ids: string[];
+    summary: string;
+    completed_at: string;
+  };
   last_meaningful_progress?: string;
   last_failure_summary?: string;
   avoid_strategies: string[];
@@ -67,6 +88,8 @@ function toCamel(raw: RecoverySnake): RecoveryPacket {
     goalTitle: raw.goal_title,
     currentStage: raw.current_stage,
     successCriteria: raw.success_criteria,
+    contract: raw.contract ? contractToCamel(raw.goal_id, raw.contract, raw.agent_id) : undefined,
+    completion: raw.completion ? completionToCamel(raw.goal_id, raw.completion, raw.agent_id) : undefined,
     lastMeaningfulProgress: raw.last_meaningful_progress,
     lastFailureSummary: raw.last_failure_summary,
     avoidStrategies: raw.avoid_strategies,
@@ -77,6 +100,43 @@ function toCamel(raw: RecoverySnake): RecoveryPacket {
     sharedWisdom: (raw.shared_wisdom ?? []).map(promotionToCamel),
     openQuestions: raw.open_questions ?? [],
     generatedAt: raw.generated_at,
+  };
+}
+
+function contractToCamel(
+  goalId: string,
+  raw: NonNullable<RecoverySnake['contract']>,
+  agentId?: string
+): GoalContract {
+  return {
+    id: raw.id,
+    agentId: agentId ?? 'goal-engine-demo',
+    goalId,
+    outcome: raw.outcome,
+    successEvidence: raw.success_evidence,
+    deadlineAt: raw.deadline_at,
+    autonomyLevel: raw.autonomy_level as GoalContract['autonomyLevel'],
+    boundaryRules: raw.boundary_rules,
+    stopConditions: raw.stop_conditions,
+    strategyGuidance: raw.strategy_guidance,
+    permissionBoundary: raw.permission_boundary,
+    createdAt: raw.created_at ?? '',
+    updatedAt: raw.updated_at ?? '',
+  };
+}
+
+function completionToCamel(
+  goalId: string,
+  raw: NonNullable<RecoverySnake['completion']>,
+  agentId?: string
+): GoalCompletion {
+  return {
+    id: raw.id,
+    agentId: agentId ?? 'goal-engine-demo',
+    goalId,
+    evidenceIds: raw.evidence_ids,
+    summary: raw.summary,
+    completedAt: raw.completed_at,
   };
 }
 

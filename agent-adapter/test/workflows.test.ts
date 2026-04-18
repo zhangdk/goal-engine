@@ -369,6 +369,82 @@ describe('showGoalStatus', () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
+  it('shows contract and completion facts from recovery packet', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            id: 'goal_1',
+            title: 'Fact-visible goal',
+            status: 'completed',
+            success_criteria: ['Payment confirmation exists'],
+            stop_conditions: [],
+            priority: 1,
+            current_stage: 'done',
+            created_at: '2026-04-17T00:00:00.000Z',
+            updated_at: '2026-04-17T00:00:00.000Z',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          error: { code: 'no_policy_yet', message: 'No policy yet' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: {
+            goal_id: 'goal_1',
+            goal_title: 'Fact-visible goal',
+            current_stage: 'done',
+            success_criteria: ['Payment confirmation exists'],
+            contract: {
+              id: 'contract_1',
+              outcome: 'Earn 100 RMB',
+              success_evidence: ['Payment confirmation exists'],
+              autonomy_level: 2,
+              boundary_rules: [],
+              stop_conditions: [],
+              strategy_guidance: [],
+              permission_boundary: [],
+              created_at: '2026-04-17T00:00:00.000Z',
+              updated_at: '2026-04-17T00:00:00.000Z',
+            },
+            completion: {
+              id: 'completion_1',
+              evidence_ids: ['evidence_1'],
+              summary: 'Completed with artifact evidence',
+              completed_at: '2026-04-17T00:00:00.000Z',
+            },
+            avoid_strategies: [],
+            recent_attempts: [],
+            relevant_knowledge: [],
+            shared_wisdom: [],
+            open_questions: [],
+            generated_at: '2026-04-17T00:00:00.000Z',
+          },
+        }),
+      });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const projectionDir = createTempProjectionDir();
+    writeFileSync(join(projectionDir, 'current-goal.md'), '# Current Goal\n\n## 目标\n\nFact-visible goal', 'utf-8');
+    writeFileSync(join(projectionDir, 'current-policy.md'), '', 'utf-8');
+    writeFileSync(join(projectionDir, 'recovery-packet.md'), '', 'utf-8');
+
+    const result = await showGoalStatus(client, { projectionDir });
+
+    expect(result.summary).toContain('Contract: Earn 100 RMB');
+    expect(result.summary).toContain('Completion: verified by Goal Engine with 1 evidence item');
+  });
+
   it('shows relevant knowledge in goal status output', async () => {
     const fetch = vi
       .fn()

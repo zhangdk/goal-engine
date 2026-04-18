@@ -140,6 +140,71 @@ describe('GET /api/v1/recovery-packet', () => {
     );
   });
 
+  it('surfaces contract and completion facts when present', async () => {
+    const goalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-facts' },
+      body: JSON.stringify({
+        title: 'Fact-visible goal',
+        success_criteria: ['Payment confirmation exists'],
+        stop_conditions: [],
+        current_stage: 'goal-contract',
+        contract: {
+          outcome: 'Earn 100 RMB',
+          success_evidence: ['Payment confirmation exists'],
+          autonomy_level: 2,
+          boundary_rules: [],
+          stop_conditions: [],
+          strategy_guidance: [],
+          permission_boundary: [],
+        },
+      }),
+    });
+    const goal = ((await goalRes.json()) as { data: { id: string } }).data;
+
+    const evidenceRes = await app.request('/api/v1/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-facts' },
+      body: JSON.stringify({
+        goal_id: goal.id,
+        kind: 'artifact',
+        summary: 'Created final artifact',
+        verifier: 'agent',
+        confidence: 0.8,
+      }),
+    });
+    const evidence = ((await evidenceRes.json()) as { data: { id: string } }).data;
+
+    await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-facts' },
+      body: JSON.stringify({
+        evidence_ids: [evidence.id],
+        summary: 'Completed with artifact evidence',
+      }),
+    });
+
+    const res = await app.request(`/api/v1/recovery-packet?goal_id=${goal.id}`, {
+      headers: { 'X-Agent-Id': 'agent-facts' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as {
+      data: {
+        contract?: { outcome: string; success_evidence: string[] };
+        completion?: { evidence_ids: string[]; summary: string };
+      };
+    };
+    expect(body.data.contract).toEqual(expect.objectContaining({
+      outcome: 'Earn 100 RMB',
+      success_evidence: ['Payment confirmation exists'],
+    }));
+    expect(body.data.completion).toEqual(expect.objectContaining({
+      evidence_ids: [evidence.id],
+      summary: 'Completed with artifact evidence',
+    }));
+  });
+
   it('does not recover another agent goal by id', async () => {
     const goalRes = await app.request('/api/v1/goals', {
       method: 'POST',

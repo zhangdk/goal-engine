@@ -133,6 +133,14 @@ function buildStatusSummary(input: {
   }
 
   if (input.recoveryPacket) {
+    if (input.recoveryPacket.contract) {
+      lines.push(`Contract: ${input.recoveryPacket.contract.outcome}`);
+    }
+    if (input.recoveryPacket.completion) {
+      const count = input.recoveryPacket.completion.evidenceIds.length;
+      lines.push(`Completion: verified by Goal Engine with ${count} evidence ${count === 1 ? 'item' : 'items'}`);
+      lines.push(`Completion summary: ${input.recoveryPacket.completion.summary}`);
+    }
     lines.push(...formatKnowledgeSections({
       relevantKnowledge: input.recoveryPacket.relevantKnowledge,
       sharedWisdom: input.recoveryPacket.sharedWisdom,

@@ -6,6 +6,8 @@ import { AttemptRepo } from '../src/repos/attempt.repo.js';
 import { PolicyRepo } from '../src/repos/policy.repo.js';
 import { KnowledgeRepo } from '../src/repos/knowledge.repo.js';
 import { KnowledgePromotionRepo } from '../src/repos/knowledge-promotion.repo.js';
+import { GoalContractRepo } from '../src/repos/goal-contract.repo.js';
+import { GoalCompletionRepo } from '../src/repos/goal-completion.repo.js';
 import { RecoveryService } from '../src/services/recovery.service.js';
 import { KnowledgeService } from '../src/services/knowledge.service.js';
 
@@ -15,6 +17,8 @@ let attemptRepo: AttemptRepo;
 let policyRepo: PolicyRepo;
 let knowledgeRepo: KnowledgeRepo;
 let knowledgePromotionRepo: KnowledgePromotionRepo;
+let goalContractRepo: GoalContractRepo;
+let goalCompletionRepo: GoalCompletionRepo;
 let knowledgeService: KnowledgeService;
 let recoveryService: RecoveryService;
 
@@ -25,8 +29,17 @@ beforeEach(() => {
   policyRepo = new PolicyRepo(db);
   knowledgeRepo = new KnowledgeRepo(db);
   knowledgePromotionRepo = new KnowledgePromotionRepo(db);
+  goalContractRepo = new GoalContractRepo(db);
+  goalCompletionRepo = new GoalCompletionRepo(db);
   knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
-  recoveryService = new RecoveryService(goalRepo, attemptRepo, policyRepo, knowledgeService);
+  recoveryService = new RecoveryService(
+    goalRepo,
+    attemptRepo,
+    policyRepo,
+    goalContractRepo,
+    goalCompletionRepo,
+    knowledgeService
+  );
 });
 
 /** 创建 active goal */

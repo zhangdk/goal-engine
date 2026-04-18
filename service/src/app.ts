@@ -70,7 +70,14 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   // Services
   const knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
   const policyService = new PolicyService(db, goalRepo, attemptRepo, reflectionRepo, policyRepo, knowledgeService);
-  const recoveryService = new RecoveryService(goalRepo, attemptRepo, policyRepo, knowledgeService);
+  const recoveryService = new RecoveryService(
+    goalRepo,
+    attemptRepo,
+    policyRepo,
+    goalContractRepo,
+    goalCompletionRepo,
+    knowledgeService
+  );
   const goalAgentHistoryService = new GoalAgentHistoryService(goalRepo, goalAgentAssignmentRepo, {
     workspaceStatePath: options?.ui?.workspaceStatePath,
     runtimeStatePath: options?.ui?.runtimeStatePath,

@@ -4,7 +4,7 @@ import type { RecoveryService } from '../services/recovery.service.js';
 import type { RecoveryEventRepo } from '../repos/recovery-event.repo.js';
 import type { KnowledgeReferenceEventRepo } from '../repos/knowledge-reference-event.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
-import type { RecoveryPacketCurrentPolicy, RecoveryPacketRecentAttempt } from '../../../shared/types.js';
+import type { GoalCompletion, GoalContract, RecoveryPacketCurrentPolicy, RecoveryPacketRecentAttempt } from '../../../shared/types.js';
 import { knowledgeToSnakeCase, promotionToSnakeCase } from './knowledge.js';
 import { resolveAgentContext } from '../agent-context.js';
 
@@ -61,6 +61,8 @@ export function recoveryRouter(
         goal_title: packet.goalTitle,
         current_stage: packet.currentStage,
         success_criteria: packet.successCriteria,
+        contract: packet.contract ? contractToSnakeCase(packet.contract) : undefined,
+        completion: packet.completion ? completionToSnakeCase(packet.completion) : undefined,
         last_meaningful_progress: packet.lastMeaningfulProgress,
         last_failure_summary: packet.lastFailureSummary,
         avoid_strategies: packet.avoidStrategies,
@@ -76,6 +78,31 @@ export function recoveryRouter(
   });
 
   return router;
+}
+
+function contractToSnakeCase(contract: GoalContract) {
+  return {
+    id: contract.id,
+    outcome: contract.outcome,
+    success_evidence: contract.successEvidence,
+    deadline_at: contract.deadlineAt,
+    autonomy_level: contract.autonomyLevel,
+    boundary_rules: contract.boundaryRules,
+    stop_conditions: contract.stopConditions,
+    strategy_guidance: contract.strategyGuidance,
+    permission_boundary: contract.permissionBoundary,
+    created_at: contract.createdAt,
+    updated_at: contract.updatedAt,
+  };
+}
+
+function completionToSnakeCase(completion: GoalCompletion) {
+  return {
+    id: completion.id,
+    evidence_ids: completion.evidenceIds,
+    summary: completion.summary,
+    completed_at: completion.completedAt,
+  };
 }
 
 function policyToSnakeCase(policy: RecoveryPacketCurrentPolicy) {
