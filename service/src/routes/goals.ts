@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import type Database from 'better-sqlite3';
-import type { GoalContract } from '../../../shared/types.js';
+import type { AttemptEvidence, GoalCompletion, GoalContract } from '../../../shared/types.js';
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { GoalAgentAssignmentRepo } from '../repos/goal-agent-assignment.repo.js';
 import type { GoalContractRepo } from '../repos/goal-contract.repo.js';
@@ -47,14 +47,19 @@ const patchGoalSchema = z.object({
   stop_conditions: z.array(z.string()).optional(),
 });
 
+const completeGoalSchema = z.object({
+  evidence_ids: z.array(z.string().min(1)).min(1),
+  summary: z.string().min(1),
+});
+
 export function goalsRouter(
   db: Database.Database,
   goalRepo: GoalRepo,
   goalAgentAssignmentRepo: GoalAgentAssignmentRepo,
   goalAgentHistoryService: GoalAgentHistoryService,
   goalContractRepo: GoalContractRepo,
-  _attemptEvidenceRepo: AttemptEvidenceRepo,
-  _goalCompletionRepo: GoalCompletionRepo
+  attemptEvidenceRepo: AttemptEvidenceRepo,
+  goalCompletionRepo: GoalCompletionRepo
 ): Hono {
   const router = new Hono();
 
@@ -194,6 +199,94 @@ export function goalsRouter(
     return c.json({ data: contractToSnakeCase(contract) });
   });
 
+  router.post('/:goalId/complete', zValidator('json', completeGoalSchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
+    }
+  }), (c) => {
+    const goalId = c.req.param('goalId');
+    const { agentId } = resolveAgentContext(c.req.raw.headers);
+    const data = c.req.valid('json');
+    const goal = goalRepo.getById(agentId, goalId);
+    if (!goal) {
+      return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
+    }
+
+    const uniqueEvidenceIds = new Set(data.evidence_ids);
+    if (uniqueEvidenceIds.size !== data.evidence_ids.length) {
+      return c.json({
+        error: {
+          code: 'validation_error',
+          message: 'completion evidence_ids must be unique',
+        },
+      }, 422);
+    }
+
+    const existingCompletion = goalCompletionRepo.getByGoal(agentId, goalId);
+    if (existingCompletion || goal.status === 'completed') {
+      return c.json({
+        error: {
+          code: 'state_conflict',
+          message: 'Goal is already completed',
+        },
+      }, 409);
+    }
+
+    const evidence = attemptEvidenceRepo.listByIds(agentId, goalId, data.evidence_ids);
+    if (evidence.length !== uniqueEvidenceIds.size) {
+      return c.json({
+        error: {
+          code: 'insufficient_evidence',
+          message: 'All completion evidence_ids must belong to the goal and requesting agent',
+        },
+      }, 422);
+    }
+
+    const inadmissible = evidence.find((item) => item.kind === 'blocker');
+    if (inadmissible) {
+      return c.json({
+        error: {
+          code: 'inadmissible_evidence',
+          message: 'Blocker evidence cannot be used as completion proof',
+        },
+      }, 422);
+    }
+
+    const now = new Date().toISOString();
+    const completion: GoalCompletion = {
+      id: randomUUID(),
+      agentId,
+      goalId,
+      evidenceIds: data.evidence_ids,
+      summary: data.summary,
+      completedAt: now,
+    };
+
+    try {
+      const completeGoal = db.transaction(() => {
+        goalCompletionRepo.create(completion);
+        goalRepo.patch(agentId, goalId, {
+          status: 'completed',
+          updatedAt: now,
+        });
+        goalAgentHistoryService.touchGoal(goalId, 'goal_completed', now, agentId);
+      });
+      completeGoal();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return c.json({ error: { code: 'internal_error', message: msg } }, 500);
+    }
+
+    const updated = goalRepo.getById(agentId, goalId)!;
+    return c.json({
+      data: {
+        goal: toSnakeCase(updated),
+        completion: completionToSnakeCase(completion),
+        evidence: evidence.map(evidenceToSnakeCase),
+      },
+    });
+  });
+
   router.patch('/:goalId', zValidator('json', patchGoalSchema, (result, c) => {
     if (!result.success) {
       return c.json({ error: { code: 'validation_error', details: result.error.issues } }, 422);
@@ -249,6 +342,35 @@ export function goalsRouter(
   });
 
   return router;
+}
+
+function completionToSnakeCase(completion: GoalCompletion) {
+  return {
+    id: completion.id,
+    agent_id: completion.agentId,
+    goal_id: completion.goalId,
+    evidence_ids: completion.evidenceIds,
+    summary: completion.summary,
+    completed_at: completion.completedAt,
+  };
+}
+
+function evidenceToSnakeCase(evidence: AttemptEvidence) {
+  return {
+    id: evidence.id,
+    agent_id: evidence.agentId,
+    goal_id: evidence.goalId,
+    attempt_id: evidence.attemptId,
+    kind: evidence.kind,
+    summary: evidence.summary,
+    uri: evidence.uri,
+    file_path: evidence.filePath,
+    tool_name: evidence.toolName,
+    observed_at: evidence.observedAt,
+    verifier: evidence.verifier,
+    confidence: evidence.confidence,
+    created_at: evidence.createdAt,
+  };
 }
 
 function contractToSnakeCase(contract: GoalContract) {

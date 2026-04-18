@@ -21,7 +21,13 @@ export class GoalAgentHistoryService {
 
   touchGoal(
     goalId: string,
-    reason: 'goal_started' | 'attempt_recorded' | 'reflection_recorded' | 'retry_checked' | 'recovery',
+    reason:
+      | 'goal_started'
+      | 'attempt_recorded'
+      | 'reflection_recorded'
+      | 'retry_checked'
+      | 'recovery'
+      | 'goal_completed',
     timestamp = new Date().toISOString(),
     agentId?: string
   ): void {

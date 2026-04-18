@@ -350,3 +350,278 @@ describe('PATCH /api/v1/goals/:goalId', () => {
     expect(body.data.current_stage).toBe('execution');
   });
 });
+
+describe('POST /api/v1/goals/:goalId/complete', () => {
+  it('rejects completion without evidence ids', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Complete with evidence',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const res = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        evidence_ids: [],
+        summary: 'Done',
+      }),
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('marks a goal completed only when referenced evidence belongs to the goal', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete' },
+      body: JSON.stringify({
+        title: 'Complete with evidence',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const evidenceRes = await app.request('/api/v1/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete' },
+      body: JSON.stringify({
+        goal_id: goal.id,
+        kind: 'artifact',
+        summary: 'Created final artifact',
+        observed_at: '2026-04-17T00:00:00.000Z',
+        verifier: 'agent',
+        confidence: 0.8,
+      }),
+    });
+    const evidence = ((await evidenceRes.json()) as { data: { id: string } }).data;
+
+    const res = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete' },
+      body: JSON.stringify({
+        evidence_ids: [evidence.id],
+        summary: 'Completed with artifact evidence',
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as {
+      data: {
+        goal: { status: string };
+        completion: { evidence_ids: string[]; summary: string };
+      };
+    };
+    expect(body.data.goal.status).toBe('completed');
+    expect(body.data.completion.evidence_ids).toEqual([evidence.id]);
+  });
+
+  it('rejects completion when evidence id is missing or belongs to another goal', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Complete with missing evidence',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const res = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        evidence_ids: ['missing-evidence'],
+        summary: 'Done',
+      }),
+    });
+
+    expect(res.status).toBe(422);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('insufficient_evidence');
+  });
+
+  it('rejects duplicate completion evidence ids', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Complete with duplicate evidence',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const evidenceRes = await app.request('/api/v1/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goal.id,
+        kind: 'artifact',
+        summary: 'Created final artifact',
+        observed_at: '2026-04-17T00:00:00.000Z',
+        verifier: 'agent',
+        confidence: 0.8,
+      }),
+    });
+    const evidence = ((await evidenceRes.json()) as { data: { id: string } }).data;
+
+    const res = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        evidence_ids: [evidence.id, evidence.id],
+        summary: 'Done',
+      }),
+    });
+
+    expect(res.status).toBe(422);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('validation_error');
+  });
+
+  it('rejects completion when the goal is already completed', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete-dup' },
+      body: JSON.stringify({
+        title: 'Complete once',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const evidenceRes = await app.request('/api/v1/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete-dup' },
+      body: JSON.stringify({
+        goal_id: goal.id,
+        kind: 'artifact',
+        summary: 'Created final artifact',
+        verifier: 'agent',
+        confidence: 0.8,
+      }),
+    });
+    const evidence = ((await evidenceRes.json()) as { data: { id: string } }).data;
+
+    const payload = JSON.stringify({
+      evidence_ids: [evidence.id],
+      summary: 'Done once',
+    });
+    const first = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete-dup' },
+      body: payload,
+    });
+    expect(first.status).toBe(200);
+
+    const second = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete-dup' },
+      body: payload,
+    });
+    expect(second.status).toBe(409);
+    const body = await second.json() as { error: { code: string } };
+    expect(body.error.code).toBe('state_conflict');
+  });
+
+  it('rejects blocker evidence as completion proof', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-blocker-proof' },
+      body: JSON.stringify({
+        title: 'Cannot complete with blocker',
+        success_criteria: ['Positive proof exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const evidenceRes = await app.request('/api/v1/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-blocker-proof' },
+      body: JSON.stringify({
+        goal_id: goal.id,
+        kind: 'blocker',
+        summary: 'External system is unavailable',
+        verifier: 'agent',
+        confidence: 0.8,
+      }),
+    });
+    const evidence = ((await evidenceRes.json()) as { data: { id: string } }).data;
+
+    const res = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-blocker-proof' },
+      body: JSON.stringify({
+        evidence_ids: [evidence.id],
+        summary: 'Done',
+      }),
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json() as { error: { code: string } };
+    expect(body.error.code).toBe('inadmissible_evidence');
+  });
+
+  it('does not mark the goal completed when completion persistence fails', async () => {
+    const createRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete' },
+      body: JSON.stringify({
+        title: 'Completion rollback',
+        success_criteria: ['Evidence exists'],
+        stop_conditions: [],
+        current_stage: 'execution',
+      }),
+    });
+    const goal = ((await createRes.json()) as { data: { id: string } }).data;
+
+    const evidenceRes = await app.request('/api/v1/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete' },
+      body: JSON.stringify({
+        goal_id: goal.id,
+        kind: 'artifact',
+        summary: 'Created final artifact',
+        verifier: 'agent',
+        confidence: 0.8,
+      }),
+    });
+    const evidence = ((await evidenceRes.json()) as { data: { id: string } }).data;
+
+    db.prepare(`
+      CREATE TRIGGER fail_goal_completion_insert
+      BEFORE INSERT ON goal_completions
+      BEGIN
+        SELECT RAISE(ABORT, 'completion insert failed');
+      END;
+    `).run();
+
+    const res = await app.request(`/api/v1/goals/${goal.id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-complete' },
+      body: JSON.stringify({
+        evidence_ids: [evidence.id],
+        summary: 'Done',
+      }),
+    });
+
+    expect(res.status).toBe(500);
+    expect(goalRepo.getById('agent-complete', goal.id)?.status).toBe('active');
+  });
+});
