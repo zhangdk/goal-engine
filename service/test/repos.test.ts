@@ -4,6 +4,7 @@ import { makeTestDb, testId, nowIso } from './helpers.js';
 import { GoalRepo } from '../src/repos/goal.repo.js';
 import { AttemptRepo } from '../src/repos/attempt.repo.js';
 import { GoalContractRepo } from '../src/repos/goal-contract.repo.js';
+import { AttemptEvidenceRepo } from '../src/repos/attempt-evidence.repo.js';
 import { ReflectionRepo } from '../src/repos/reflection.repo.js';
 import { PolicyRepo } from '../src/repos/policy.repo.js';
 
@@ -315,6 +316,56 @@ describe('AttemptRepo', () => {
 
     const latest = attemptRepo.getLatestFailure(goalId);
     expect(latest?.id).toBe(second);
+  });
+});
+
+// ─── Attempt Evidence Repo ───────────────────────────────────────────────────
+
+describe('AttemptEvidenceRepo', () => {
+  it('stores and lists attempt evidence by goal', () => {
+    const repo = new AttemptEvidenceRepo(db);
+    const now = '2026-04-17T00:00:00.000Z';
+    goalRepo.create({
+      id: 'goal_evidence_repo_goal',
+      agentId: 'agent-a',
+      title: 'Goal with evidence',
+      status: 'active',
+      successCriteria: ['Evidence exists'],
+      stopConditions: [],
+      priority: 1,
+      currentStage: 'research',
+      createdAt: now,
+      updatedAt: now,
+    });
+    attemptRepo.create({
+      id: 'attempt_evidence_repo_attempt',
+      agentId: 'agent-a',
+      goalId: 'goal_evidence_repo_goal',
+      stage: 'research',
+      actionTaken: 'Created artifact',
+      strategyTags: ['artifact'],
+      result: 'partial',
+      createdAt: now,
+    });
+
+    repo.create({
+      id: 'evidence_1',
+      agentId: 'agent-a',
+      goalId: 'goal_evidence_repo_goal',
+      attemptId: 'attempt_evidence_repo_attempt',
+      kind: 'artifact',
+      summary: 'Created artifact',
+      filePath: 'artifact.md',
+      observedAt: now,
+      verifier: 'agent',
+      confidence: 0.8,
+      createdAt: now,
+    });
+
+    const evidence = repo.listByGoal('agent-a', 'goal_evidence_repo_goal');
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0].summary).toBe('Created artifact');
+    expect(evidence[0].filePath).toBe('artifact.md');
   });
 });
 
