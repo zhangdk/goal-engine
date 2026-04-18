@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import type Database from 'better-sqlite3';
 import { makeTestDb } from './helpers.js';
 import { createApp } from '../src/app.js';
+import { GoalRepo } from '../src/repos/goal.repo.js';
 
 let app: ReturnType<typeof createApp>;
+let db: Database.Database;
+let goalRepo: GoalRepo;
 
 beforeEach(() => {
-  const db = makeTestDb();
+  db = makeTestDb();
+  goalRepo = new GoalRepo(db);
   app = createApp(db);
 });
 
@@ -26,6 +31,86 @@ describe('POST /api/v1/goals', () => {
     const body = await res.json() as { data: { id: string; status: string } };
     expect(body.data.id).toBeDefined();
     expect(body.data.status).toBe('active');
+  });
+
+  it('creates an optional goal contract with the goal', async () => {
+    const res = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-contract' },
+      body: JSON.stringify({
+        title: 'Goal with contract',
+        success_criteria: ['Payment confirmation exists'],
+        stop_conditions: ['No deception'],
+        current_stage: 'goal-contract',
+        contract: {
+          outcome: 'Earn 100 RMB',
+          success_evidence: ['Payment confirmation exists'],
+          deadline_at: '2026-04-18T00:00:00.000Z',
+          autonomy_level: 2,
+          boundary_rules: ['Ask before payment'],
+          stop_conditions: ['No deception'],
+          strategy_guidance: ['Prefer fast validation'],
+          permission_boundary: ['No payment without approval'],
+        },
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json() as {
+      data: {
+        id: string;
+        contract?: {
+          goal_id: string;
+          outcome: string;
+          success_evidence: string[];
+          autonomy_level: number;
+        };
+      };
+    };
+    expect(body.data.contract).toEqual(expect.objectContaining({
+      goal_id: body.data.id,
+      outcome: 'Earn 100 RMB',
+      success_evidence: ['Payment confirmation exists'],
+      autonomy_level: 2,
+    }));
+
+    const contractRes = await app.request(`/api/v1/goals/${body.data.id}/contract`, {
+      headers: { 'X-Agent-Id': 'agent-contract' },
+    });
+    expect(contractRes.status).toBe(200);
+  });
+
+  it('does not leave an active goal when contract persistence fails', async () => {
+    db.prepare(`
+      CREATE TRIGGER fail_goal_contract_insert
+      BEFORE INSERT ON goal_contracts
+      BEGIN
+        SELECT RAISE(ABORT, 'contract insert failed');
+      END;
+    `).run();
+
+    const res = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Agent-Id': 'agent-contract' },
+      body: JSON.stringify({
+        title: 'Goal with failing contract',
+        success_criteria: ['Payment confirmation exists'],
+        stop_conditions: [],
+        current_stage: 'goal-contract',
+        contract: {
+          outcome: 'Earn 100 RMB',
+          success_evidence: ['Payment confirmation exists'],
+          autonomy_level: 2,
+          boundary_rules: [],
+          stop_conditions: [],
+          strategy_guidance: [],
+          permission_boundary: [],
+        },
+      }),
+    });
+
+    expect(res.status).toBe(500);
+    expect(goalRepo.getCurrent('agent-contract')).toBeNull();
   });
 
   it('returns 409 when active goal already exists', async () => {

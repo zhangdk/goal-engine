@@ -8,6 +8,9 @@ import { PolicyRepo } from './repos/policy.repo.js';
 import { RetryHistoryRepo } from './repos/retry-history.repo.js';
 import { RecoveryEventRepo } from './repos/recovery-event.repo.js';
 import { GoalAgentAssignmentRepo } from './repos/goal-agent-assignment.repo.js';
+import { GoalContractRepo } from './repos/goal-contract.repo.js';
+import { AttemptEvidenceRepo } from './repos/attempt-evidence.repo.js';
+import { GoalCompletionRepo } from './repos/goal-completion.repo.js';
 import { KnowledgeRepo } from './repos/knowledge.repo.js';
 import { KnowledgePromotionRepo } from './repos/knowledge-promotion.repo.js';
 import { KnowledgeReferenceEventRepo } from './repos/knowledge-reference-event.repo.js';
@@ -56,6 +59,9 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   const retryHistoryRepo = new RetryHistoryRepo(db);
   const recoveryEventRepo = new RecoveryEventRepo(db);
   const goalAgentAssignmentRepo = new GoalAgentAssignmentRepo(db);
+  const goalContractRepo = new GoalContractRepo(db);
+  const attemptEvidenceRepo = new AttemptEvidenceRepo(db);
+  const goalCompletionRepo = new GoalCompletionRepo(db);
   const knowledgeRepo = new KnowledgeRepo(db);
   const knowledgePromotionRepo = new KnowledgePromotionRepo(db);
   const knowledgeReferenceEventRepo = new KnowledgeReferenceEventRepo(db);
@@ -70,7 +76,15 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   });
 
   // Routes under /api/v1
-  app.route('/api/v1/goals', goalsRouter(goalRepo, goalAgentAssignmentRepo, goalAgentHistoryService));
+  app.route('/api/v1/goals', goalsRouter(
+    db,
+    goalRepo,
+    goalAgentAssignmentRepo,
+    goalAgentHistoryService,
+    goalContractRepo,
+    attemptEvidenceRepo,
+    goalCompletionRepo
+  ));
   app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/reflections', reflectionsRouter(policyService, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
