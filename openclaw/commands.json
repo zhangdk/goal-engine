@@ -83,6 +83,48 @@
       "produces": "json",
       "summary": "Compile a rough external-world task into a GoalContract, start the supervised goal, and require show goal status before any external execution."
     },
+    "record evidence": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "record evidence",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"goalId\":\"<goal id>\",\"kind\":\"artifact\",\"summary\":\"<evidence summary>\",\"filePath\":\"<optional artifact path>\"}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Record proof, artifact, blocker, or external confirmation for the current goal"
+    },
+    "complete goal": {
+      "command": [
+        "pnpm",
+        "openclaw",
+        "entrypoint",
+        "complete goal",
+        "--agent-id",
+        "<agent-id>",
+        "--agent-name",
+        "<agent-name>",
+        "--workspace",
+        "<workspace>",
+        "--session",
+        "<session>",
+        "--payload",
+        "{\"goalId\":\"<goal id>\",\"evidenceIds\":[\"<evidence id>\"],\"summary\":\"<completion summary>\"}"
+      ],
+      "cwd": "agent-adapter",
+      "produces": "json",
+      "summary": "Complete the current goal with Goal Engine evidence ids"
+    },
     "record failed attempt": {
       "command": [
         "pnpm",

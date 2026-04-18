@@ -1,7 +1,9 @@
-import type { FailureType } from '../../../shared/types.js';
+import type { AttemptEvidence, FailureType } from '../../../shared/types.js';
 import type { AdapterClient } from '../client.js';
 import { updateExternalToolGuard } from './runtime-state.js';
 import { goalGetCurrent } from '../tools/goal-get-current.js';
+import { evidenceRecord } from '../tools/evidence-record.js';
+import { goalComplete } from '../tools/goal-complete.js';
 import { checkRetryAndExplain } from '../workflows/check-retry-and-explain.js';
 import { recordFailureAndRefresh } from '../workflows/record-failure-and-refresh.js';
 import { recoverGoalSession } from '../workflows/recover-goal-session.js';
@@ -13,6 +15,8 @@ export type OpenClawEntrypoint =
   | 'start goal'
   | 'show goal status'
   | 'supervise external goal'
+  | 'record evidence'
+  | 'complete goal'
   | 'record failed attempt'
   | 'recover current goal'
   | 'check retry';
@@ -49,6 +53,25 @@ type RecordFailedAttemptInput = {
   projectionDir?: string;
 };
 
+type RecordEvidenceInput = {
+  goalId?: string;
+  attemptId?: string;
+  kind: AttemptEvidence['kind'];
+  summary: string;
+  uri?: string;
+  filePath?: string;
+  toolName?: string;
+  observedAt?: string;
+  verifier?: AttemptEvidence['verifier'];
+  confidence?: number;
+};
+
+type CompleteGoalInput = {
+  goalId?: string;
+  evidenceIds: string[];
+  summary: string;
+};
+
 type RecoverCurrentGoalInput = {
   projectionDir?: string;
 };
@@ -64,6 +87,8 @@ export type DispatchEntrypointInput =
   | { entrypoint: 'start goal'; input: StartGoalInput }
   | { entrypoint: 'show goal status'; input?: ShowGoalStatusInput }
   | { entrypoint: 'supervise external goal'; input: SuperviseExternalGoalInput }
+  | { entrypoint: 'record evidence'; input: RecordEvidenceInput }
+  | { entrypoint: 'complete goal'; input: CompleteGoalInput }
   | { entrypoint: 'record failed attempt'; input: RecordFailedAttemptInput }
   | { entrypoint: 'recover current goal'; input?: RecoverCurrentGoalInput }
   | { entrypoint: 'check retry'; input: CheckRetryInput };
@@ -151,6 +176,65 @@ export async function dispatchEntrypoint(
         summary: `Failed attempt recorded.\n${result.guidanceSummary}`,
       };
     }
+    case 'record evidence': {
+      if (!request.input.kind || !request.input.summary) {
+        return {
+          entrypoint: request.entrypoint,
+          summary: 'Evidence was not recorded.\nProvide kind and summary. Valid kinds: artifact, external_fact, channel_check, permission_boundary, reply, payment, blocker.',
+        };
+      }
+
+      const goalId = await resolveGoalId(client, request.input.goalId);
+      if (!goalId) {
+        return {
+          entrypoint: request.entrypoint,
+          summary: 'Evidence was not recorded.\nNo active goal could be inferred. Run show goal status or pass goalId.',
+        };
+      }
+
+      const evidence = await evidenceRecord(client, {
+        goalId,
+        attemptId: request.input.attemptId,
+        kind: request.input.kind,
+        summary: request.input.summary,
+        uri: request.input.uri,
+        filePath: request.input.filePath,
+        toolName: request.input.toolName,
+        observedAt: request.input.observedAt,
+        verifier: request.input.verifier,
+        confidence: request.input.confidence,
+      });
+      return {
+        entrypoint: request.entrypoint,
+        summary: `Evidence recorded: ${evidence.id}\nKind: ${evidence.kind}\nSummary: ${evidence.summary}`,
+      };
+    }
+    case 'complete goal': {
+      if (!Array.isArray(request.input.evidenceIds) || request.input.evidenceIds.length === 0 || !request.input.summary) {
+        return {
+          entrypoint: request.entrypoint,
+          summary: 'Goal was not completed.\nProvide evidenceIds and summary. Completion requires at least one Goal Engine evidence id.',
+        };
+      }
+
+      const goalId = await resolveGoalId(client, request.input.goalId);
+      if (!goalId) {
+        return {
+          entrypoint: request.entrypoint,
+          summary: 'Goal was not completed.\nNo active goal could be inferred. Run show goal status or pass goalId.',
+        };
+      }
+
+      const result = await goalComplete(client, {
+        goalId,
+        evidenceIds: request.input.evidenceIds,
+        summary: request.input.summary,
+      });
+      return {
+        entrypoint: request.entrypoint,
+        summary: `Goal completed: ${result.goal.title}\nCompletion: ${result.completion.summary}\nEvidence ids: ${result.completion.evidenceIds.join(', ')}`,
+      };
+    }
     case 'recover current goal': {
       try {
         const goal = await goalGetCurrent(client);
@@ -193,6 +277,22 @@ export async function dispatchEntrypoint(
     default: {
       return assertNever(request);
     }
+  }
+}
+
+async function resolveGoalId(client: AdapterClient, explicitGoalId: string | undefined): Promise<string | null> {
+  if (explicitGoalId) {
+    return explicitGoalId;
+  }
+
+  try {
+    const goal = await goalGetCurrent(client);
+    return goal.id;
+  } catch (err: unknown) {
+    if (isNoActiveGoalError(err)) {
+      return null;
+    }
+    throw err;
   }
 }
 

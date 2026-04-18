@@ -51,6 +51,110 @@ function restoreDefaultProjectionFiles(): void {
 }
 
 describe('dispatchEntrypoint', () => {
+  it('records evidence through the user-facing entrypoint', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        data: {
+          id: 'evidence_1',
+          goal_id: 'goal_1',
+          kind: 'artifact',
+          summary: 'Artifact created',
+          file_path: 'artifact.md',
+          observed_at: '2026-04-17T00:00:00.000Z',
+          verifier: 'agent',
+          confidence: 0.8,
+          created_at: '2026-04-17T00:00:00.000Z',
+        },
+      }),
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await dispatchEntrypoint(client, {
+      entrypoint: 'record evidence',
+      input: {
+        goalId: 'goal_1',
+        kind: 'artifact',
+        summary: 'Artifact created',
+        filePath: 'artifact.md',
+      },
+    });
+
+    expect(result.entrypoint).toBe('record evidence');
+    expect(result.summary).toContain('Evidence recorded: evidence_1');
+    const [url, init] = fetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE_URL}/api/v1/evidence`);
+    expect(JSON.parse(init.body as string).file_path).toBe('artifact.md');
+  });
+
+  it('completes a goal through the user-facing entrypoint', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          goal: {
+            id: 'goal_1',
+            title: 'Goal',
+            status: 'completed',
+            success_criteria: ['Evidence exists'],
+            stop_conditions: [],
+            priority: 1,
+            current_stage: 'done',
+            created_at: '2026-04-17T00:00:00.000Z',
+            updated_at: '2026-04-17T00:00:00.000Z',
+          },
+          completion: {
+            id: 'completion_1',
+            goal_id: 'goal_1',
+            evidence_ids: ['evidence_1'],
+            summary: 'Done',
+            completed_at: '2026-04-17T00:00:00.000Z',
+          },
+          evidence: [],
+        },
+      }),
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await dispatchEntrypoint(client, {
+      entrypoint: 'complete goal',
+      input: {
+        goalId: 'goal_1',
+        evidenceIds: ['evidence_1'],
+        summary: 'Done',
+      },
+    });
+
+    expect(result.entrypoint).toBe('complete goal');
+    expect(result.summary).toContain('Goal completed: Goal');
+    const [url, init] = fetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${BASE_URL}/api/v1/goals/goal_1/complete`);
+    expect(JSON.parse(init.body as string).evidence_ids).toEqual(['evidence_1']);
+  });
+
+  it('returns a user-readable evidence error when no goal can be inferred', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({
+        error: { code: 'no_active_goal', message: 'No active goal' },
+      }),
+    });
+
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+    const result = await dispatchEntrypoint(client, {
+      entrypoint: 'record evidence',
+      input: {
+        kind: 'artifact',
+        summary: 'Artifact created',
+      },
+    });
+
+    expect(result.summary).toContain('Run show goal status or pass goalId');
+  });
+
   it('maps record failed attempt to the active goal and returns a user-facing summary', async () => {
     const fetch = vi
       .fn()

@@ -92,6 +92,71 @@ Returns:
 - permission-boundary guidance
 - required next action: call `show goal status` with the same goal title before external execution
 
+### `record evidence`
+
+Intent:
+
+- record first-class proof, an artifact, a blocker, or an external confirmation for a goal
+- keep completion proof separate from attempt prose
+
+Calls:
+
+- adapter `dispatchEntrypoint` in `agent-adapter/src/openclaw/dispatch-entrypoint.ts`
+- adapter `evidenceRecord`
+- service `POST /api/v1/evidence`
+
+Reads/Writes:
+
+- reads current active goal when `goalId` is not supplied
+- writes an evidence record scoped to the requesting agent and goal
+
+Valid evidence kinds:
+
+- `artifact`
+- `external_fact`
+- `channel_check`
+- `permission_boundary`
+- `reply`
+- `payment`
+- `blocker`
+
+Returns:
+
+- evidence id
+- evidence kind
+- evidence summary
+- if no goal can be inferred, a user-readable instruction to run `show goal status` or pass `goalId`
+
+### `complete goal`
+
+Intent:
+
+- complete a goal through the evidence-referenced protocol
+- avoid false completion claims that are not tied to Goal Engine evidence ids
+
+Calls:
+
+- adapter `dispatchEntrypoint` in `agent-adapter/src/openclaw/dispatch-entrypoint.ts`
+- adapter `goalComplete`
+- service `POST /api/v1/goals/:goalId/complete`
+
+Reads/Writes:
+
+- reads current active goal when `goalId` is not supplied
+- writes a completion record and marks the goal completed atomically
+
+Rules:
+
+- pass at least one evidence id
+- `blocker` evidence cannot complete a goal because it proves an obstacle, not success
+- completion validates evidence ownership and basic admissibility; semantic sufficiency against every contract item is a later service verdict
+
+Returns:
+
+- completed goal title
+- completion summary
+- evidence ids used for completion
+
 ### `record failed attempt`
 
 Intent:
