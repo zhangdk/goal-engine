@@ -5,6 +5,7 @@ import { GoalRepo } from '../src/repos/goal.repo.js';
 import { AttemptRepo } from '../src/repos/attempt.repo.js';
 import { GoalContractRepo } from '../src/repos/goal-contract.repo.js';
 import { AttemptEvidenceRepo } from '../src/repos/attempt-evidence.repo.js';
+import { GoalCompletionRepo } from '../src/repos/goal-completion.repo.js';
 import { ReflectionRepo } from '../src/repos/reflection.repo.js';
 import { PolicyRepo } from '../src/repos/policy.repo.js';
 
@@ -366,6 +367,40 @@ describe('AttemptEvidenceRepo', () => {
     expect(evidence).toHaveLength(1);
     expect(evidence[0].summary).toBe('Created artifact');
     expect(evidence[0].filePath).toBe('artifact.md');
+  });
+});
+
+// ─── Goal Completion Repo ────────────────────────────────────────────────────
+
+describe('GoalCompletionRepo', () => {
+  it('stores a goal completion with evidence ids', () => {
+    const repo = new GoalCompletionRepo(db);
+    const now = '2026-04-17T00:00:00.000Z';
+    goalRepo.create({
+      id: 'goal_completion_repo_goal',
+      agentId: 'agent-a',
+      title: 'Goal to complete',
+      status: 'active',
+      successCriteria: ['Evidence exists'],
+      stopConditions: [],
+      priority: 1,
+      currentStage: 'done',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    repo.create({
+      id: 'completion_1',
+      agentId: 'agent-a',
+      goalId: 'goal_completion_repo_goal',
+      evidenceIds: ['evidence_1'],
+      summary: 'Completed with evidence',
+      completedAt: now,
+    });
+
+    const completion = repo.getByGoal('agent-a', 'goal_completion_repo_goal');
+    expect(completion?.evidenceIds).toEqual(['evidence_1']);
+    expect(completion?.summary).toBe('Completed with evidence');
   });
 });
 
