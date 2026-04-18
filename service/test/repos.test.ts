@@ -3,6 +3,7 @@ import type Database from 'better-sqlite3';
 import { makeTestDb, testId, nowIso } from './helpers.js';
 import { GoalRepo } from '../src/repos/goal.repo.js';
 import { AttemptRepo } from '../src/repos/attempt.repo.js';
+import { GoalContractRepo } from '../src/repos/goal-contract.repo.js';
 import { ReflectionRepo } from '../src/repos/reflection.repo.js';
 import { PolicyRepo } from '../src/repos/policy.repo.js';
 
@@ -155,6 +156,47 @@ describe('GoalRepo', () => {
     const g = goalRepo.getById(id);
     expect(g?.currentStage).toBe('execution');
     expect(g?.status).toBe('blocked');
+  });
+});
+
+// ─── Goal Contract Repo ──────────────────────────────────────────────────────
+
+describe('GoalContractRepo', () => {
+  it('stores and reads a goal contract by agent and goal', () => {
+    const repo = new GoalContractRepo(db);
+    const now = '2026-04-17T00:00:00.000Z';
+    goalRepo.create({
+      id: 'goal_contract_repo_goal',
+      agentId: 'agent-a',
+      title: 'Goal with contract',
+      status: 'active',
+      successCriteria: ['Evidence exists'],
+      stopConditions: [],
+      priority: 1,
+      currentStage: 'goal-contract',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    repo.create({
+      id: 'contract_1',
+      agentId: 'agent-a',
+      goalId: 'goal_contract_repo_goal',
+      outcome: 'Complete external goal',
+      successEvidence: ['Evidence exists'],
+      autonomyLevel: 2,
+      boundaryRules: ['Ask before payment'],
+      stopConditions: [],
+      strategyGuidance: ['Use one path'],
+      permissionBoundary: ['No payment without approval'],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const contract = repo.getByGoal('agent-a', 'goal_contract_repo_goal');
+    expect(contract?.outcome).toBe('Complete external goal');
+    expect(contract?.successEvidence).toEqual(['Evidence exists']);
+    expect(contract?.autonomyLevel).toBe(2);
   });
 });
 
