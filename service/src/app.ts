@@ -20,6 +20,7 @@ import { GoalAgentHistoryService } from './services/goal-agent-history.service.j
 import { KnowledgeService } from './services/knowledge.service.js';
 import { goalsRouter } from './routes/goals.js';
 import { attemptsRouter } from './routes/attempts.js';
+import { evidenceRouter } from './routes/evidence.js';
 import { reflectionsRouter } from './routes/reflections.js';
 import { policiesRouter } from './routes/policies.js';
 import { retryGuardRouter } from './routes/retry-guard.js';
@@ -85,6 +86,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
     attemptEvidenceRepo,
     goalCompletionRepo
   ));
+  app.route('/api/v1/evidence', evidenceRouter(goalRepo, attemptRepo, attemptEvidenceRepo));
   app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/reflections', reflectionsRouter(policyService, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
