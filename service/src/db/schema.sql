@@ -45,12 +45,73 @@ CREATE TABLE IF NOT EXISTS attempts (
   created_at     TEXT NOT NULL,
   -- result=failure 时 failure_type 必须填写
   CHECK(result != 'failure' OR failure_type IS NOT NULL),
+  UNIQUE(agent_id, goal_id, id),
   UNIQUE(agent_id, id),
   FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created ON attempts(agent_id, goal_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_attempts_created_at ON attempts(created_at);
+
+CREATE TABLE IF NOT EXISTS goal_contracts (
+  id                  TEXT PRIMARY KEY,
+  agent_id            TEXT NOT NULL REFERENCES agents(id),
+  goal_id             TEXT NOT NULL,
+  outcome             TEXT NOT NULL,
+  success_evidence    TEXT NOT NULL DEFAULT '[]',
+  deadline_at         TEXT,
+  autonomy_level      INTEGER NOT NULL DEFAULT 1 CHECK(autonomy_level IN (0, 1, 2, 3, 4)),
+  boundary_rules      TEXT NOT NULL DEFAULT '[]',
+  stop_conditions     TEXT NOT NULL DEFAULT '[]',
+  strategy_guidance   TEXT NOT NULL DEFAULT '[]',
+  permission_boundary TEXT NOT NULL DEFAULT '[]',
+  created_at          TEXT NOT NULL,
+  updated_at          TEXT NOT NULL,
+  UNIQUE(agent_id, goal_id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_goal_contracts_agent_goal
+  ON goal_contracts(agent_id, goal_id);
+
+CREATE TABLE IF NOT EXISTS attempt_evidence (
+  id           TEXT PRIMARY KEY,
+  agent_id     TEXT NOT NULL REFERENCES agents(id),
+  goal_id      TEXT NOT NULL,
+  attempt_id   TEXT,
+  kind         TEXT NOT NULL CHECK(kind IN ('artifact','external_fact','channel_check','permission_boundary','reply','payment','blocker')),
+  summary      TEXT NOT NULL,
+  uri          TEXT,
+  file_path    TEXT,
+  tool_name    TEXT,
+  observed_at  TEXT NOT NULL,
+  verifier     TEXT NOT NULL CHECK(verifier IN ('agent','user','service','browser')),
+  confidence   REAL NOT NULL DEFAULT 0.5 CHECK(confidence >= 0 AND confidence <= 1),
+  created_at   TEXT NOT NULL,
+  UNIQUE(agent_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE,
+  FOREIGN KEY(agent_id, goal_id, attempt_id) REFERENCES attempts(agent_id, goal_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_attempt_evidence_agent_goal_observed
+  ON attempt_evidence(agent_id, goal_id, observed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_attempt_evidence_agent_attempt
+  ON attempt_evidence(agent_id, attempt_id);
+
+CREATE TABLE IF NOT EXISTS goal_completions (
+  id           TEXT PRIMARY KEY,
+  agent_id     TEXT NOT NULL REFERENCES agents(id),
+  goal_id      TEXT NOT NULL,
+  evidence_ids TEXT NOT NULL DEFAULT '[]',
+  summary      TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  UNIQUE(agent_id, goal_id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_goal_completions_agent_goal
+  ON goal_completions(agent_id, goal_id);
 
 CREATE TABLE IF NOT EXISTS reflections (
   id              TEXT PRIMARY KEY,
