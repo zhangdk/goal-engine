@@ -10,6 +10,9 @@ export type RetryGuardReason = (typeof RETRY_GUARD_REASONS)[number];
 
 export type GoalStatus = 'active' | 'blocked' | 'completed' | 'abandoned';
 export type AttemptResult = 'success' | 'partial' | 'failure';
+export type ExperimentStatus = 'planned' | 'active' | 'completed' | 'abandoned' | 'blocked';
+export type ExperimentBoundaryLevel = 'safe' | 'permission_required' | 'blocked';
+export type ExperimentCostLevel = 'low' | 'medium' | 'high';
 
 export type Goal = {
   id: string;
@@ -46,6 +49,7 @@ export type Attempt = {
   id: string;
   agentId: string;
   goalId: string;
+  experimentId?: string;
   stage: string;
   actionTaken: string;
   strategyTags: string[];
@@ -241,4 +245,20 @@ export type GoalAgentAssignment = {
   assignmentReason: 'goal_started' | 'runtime_switch' | 'session_rollover';
   assignedAt: string;
   releasedAt?: string;
+};
+
+export type Experiment = {
+  id: string;
+  agentId: string;
+  goalId: string;
+  stage: string;
+  hypothesis: string;
+  actionPlan: string;
+  expectedSignal: string;
+  costLevel: ExperimentCostLevel;
+  boundaryLevel: ExperimentBoundaryLevel;
+  whyDifferent: string;
+  status: ExperimentStatus;
+  createdAt: string;
+  updatedAt: string;
 };

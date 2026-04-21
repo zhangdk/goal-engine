@@ -6,6 +6,7 @@ type AttemptRow = {
   id: string;
   agent_id: string;
   goal_id: string;
+  experiment_id: string | null;
   stage: string;
   action_taken: string;
   strategy_tags: string;
@@ -21,6 +22,7 @@ function rowToAttempt(row: AttemptRow): Attempt {
     id: row.id,
     agentId: row.agent_id,
     goalId: row.goal_id,
+    experimentId: row.experiment_id ?? undefined,
     stage: row.stage,
     actionTaken: row.action_taken,
     strategyTags: JSON.parse(row.strategy_tags),
@@ -33,11 +35,51 @@ function rowToAttempt(row: AttemptRow): Attempt {
 }
 
 export class AttemptRepo {
+  private hasExperimentColumn?: boolean;
+
   constructor(private db: Database.Database) {}
+
+  private tableColumns(): Set<string> {
+    const rows = this.db.prepare(`PRAGMA table_info(attempts)`).all() as Array<{ name: string }>;
+    return new Set(rows.map((row) => row.name));
+  }
+
+  private ensureExperimentColumn(): boolean {
+    if (this.hasExperimentColumn === undefined) {
+      this.hasExperimentColumn = this.tableColumns().has('experiment_id');
+    }
+
+    return this.hasExperimentColumn ?? false;
+  }
 
   create(attempt: Omit<Attempt, 'failureType' | 'agentId'> & { agentId?: string; failureType?: FailureType }): void {
     const agentId = attempt.agentId ?? DEFAULT_AGENT_ID;
     // result=failure 时 failureType 必须存在（schema CHECK 会捕获）
+    this.ensureExperimentColumn();
+    if (this.hasExperimentColumn) {
+      this.db
+        .prepare(
+          `INSERT INTO attempts
+             (id, agent_id, goal_id, experiment_id, stage, action_taken, strategy_tags, result, failure_type, confidence, next_hypothesis, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          attempt.id,
+          agentId,
+          attempt.goalId,
+          attempt.experimentId ?? null,
+          attempt.stage,
+          attempt.actionTaken,
+          JSON.stringify(attempt.strategyTags),
+          attempt.result,
+          attempt.failureType ?? null,
+          attempt.confidence ?? null,
+          attempt.nextHypothesis ?? null,
+          attempt.createdAt
+        );
+      return;
+    }
+
     this.db
       .prepare(
         `INSERT INTO attempts

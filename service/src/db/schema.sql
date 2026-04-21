@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS attempts (
   id             TEXT PRIMARY KEY,
   agent_id       TEXT NOT NULL REFERENCES agents(id),
   goal_id        TEXT NOT NULL,
+  experiment_id  TEXT,
   stage          TEXT NOT NULL,
   action_taken   TEXT NOT NULL,
   strategy_tags  TEXT NOT NULL DEFAULT '[]',  -- JSON string[]
@@ -52,6 +53,30 @@ CREATE TABLE IF NOT EXISTS attempts (
 
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created ON attempts(agent_id, goal_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_attempts_created_at ON attempts(created_at);
+
+CREATE TABLE IF NOT EXISTS experiments (
+  id              TEXT PRIMARY KEY,
+  agent_id        TEXT NOT NULL REFERENCES agents(id),
+  goal_id         TEXT NOT NULL,
+  stage           TEXT NOT NULL,
+  hypothesis      TEXT NOT NULL,
+  action_plan     TEXT NOT NULL,
+  expected_signal TEXT NOT NULL,
+  cost_level      TEXT NOT NULL CHECK(cost_level IN ('low','medium','high')),
+  boundary_level  TEXT NOT NULL CHECK(boundary_level IN ('safe','permission_required','blocked')),
+  why_different   TEXT NOT NULL,
+  status          TEXT NOT NULL CHECK(status IN ('planned','active','completed','abandoned','blocked')),
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL,
+  UNIQUE(agent_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_experiments_one_active_per_goal
+  ON experiments(agent_id, goal_id) WHERE status = 'active';
+
+CREATE INDEX IF NOT EXISTS idx_experiments_agent_goal_status_updated
+  ON experiments(agent_id, goal_id, status, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS goal_contracts (
   id                  TEXT PRIMARY KEY,
