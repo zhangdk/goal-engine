@@ -67,7 +67,7 @@ export function experimentsRouter(goalRepo: GoalRepo, experimentRepo: Experiment
       if (isSqliteUniqueError(err)) {
         return c.json({
           error: {
-            code: 'state_conflict',
+            code: 'active_experiment_conflict',
             message: 'An active experiment already exists for this goal',
           },
         }, 409);
@@ -104,15 +104,28 @@ export function experimentsRouter(goalRepo: GoalRepo, experimentRepo: Experiment
   }), (c) => {
     const { agentId } = resolveAgentContext(c.req.raw.headers);
     const data = c.req.valid('json');
-    const experiment = experimentRepo.update(agentId, c.req.param('id'), {
-      stage: data.stage,
-      actionPlan: data.action_plan,
-      expectedSignal: data.expected_signal,
-      costLevel: data.cost_level,
-      boundaryLevel: data.boundary_level,
-      whyDifferent: data.why_different,
-      status: data.status,
-    });
+    let experiment: Experiment | null;
+    try {
+      experiment = experimentRepo.update(agentId, c.req.param('id'), {
+        stage: data.stage,
+        actionPlan: data.action_plan,
+        expectedSignal: data.expected_signal,
+        costLevel: data.cost_level,
+        boundaryLevel: data.boundary_level,
+        whyDifferent: data.why_different,
+        status: data.status,
+      });
+    } catch (err: unknown) {
+      if (isSqliteUniqueError(err)) {
+        return c.json({
+          error: {
+            code: 'active_experiment_conflict',
+            message: 'An active experiment already exists for this goal',
+          },
+        }, 409);
+      }
+      return c.json({ error: { code: 'internal_error', message: 'Failed to update experiment' } }, 500);
+    }
     if (!experiment) {
       return c.json({ error: { code: 'not_found', message: 'Experiment not found' } }, 404);
     }

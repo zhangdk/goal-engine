@@ -106,6 +106,10 @@ function defaultErrorMessage(code: string, status: number): string {
     return 'An active goal already exists';
   }
 
+  if (code === 'active_experiment_conflict') {
+    return 'An active experiment already exists for this goal';
+  }
+
   if (code === 'validation_error') {
     return 'The request did not pass validation';
   }

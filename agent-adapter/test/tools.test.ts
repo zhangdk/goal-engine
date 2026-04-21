@@ -251,6 +251,31 @@ describe('experiment tools', () => {
     expect(experiment.expectedSignal).toBe('At least one reply');
   });
 
+  it('surfaces an experiment-specific conflict message', async () => {
+    const fetch = mockFetch(409, {
+      error: {
+        code: 'active_experiment_conflict',
+      },
+    });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+
+    await expect(experimentCreate(client, {
+      goalId: 'goal_1',
+      stage: 'channel-validation',
+      hypothesis: 'Direct outreach is faster',
+      actionPlan: 'Prepare drafts',
+      expectedSignal: 'At least one reply',
+      costLevel: 'low',
+      boundaryLevel: 'safe',
+      whyDifferent: 'Switches from broad search',
+      status: 'active',
+    })).rejects.toMatchObject({
+      code: 'active_experiment_conflict',
+      message: 'An active experiment already exists for this goal',
+      status: 409,
+    });
+  });
+
   it('gets and updates experiments', async () => {
     const response = {
       data: {

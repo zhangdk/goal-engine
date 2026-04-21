@@ -24,8 +24,8 @@ beforeEach(async () => {
 });
 
 describe('POST /api/v1/experiments', () => {
-  it('creates an experiment and lists it under the goal', async () => {
-    const createRes = await app.request('/api/v1/experiments', {
+  async function createExperiment(status: 'planned' | 'active' = 'active') {
+    const res = await app.request('/api/v1/experiments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -37,9 +37,14 @@ describe('POST /api/v1/experiments', () => {
         cost_level: 'low',
         boundary_level: 'safe',
         why_different: 'Switches from broad search to buyer-specific outreach',
-        status: 'active',
+        status,
       }),
     });
+    return res;
+  }
+
+  it('creates an experiment and lists it under the goal', async () => {
+    const createRes = await createExperiment();
 
     expect(createRes.status).toBe(201);
     const createdBody = await createRes.json() as { data: { id: string; goal_id: string; status: string } };
@@ -70,10 +75,23 @@ describe('POST /api/v1/experiments', () => {
 
     expect(res.status).toBe(404);
   });
+
+  it('returns 409 when creating a second active experiment for the goal', async () => {
+    const firstRes = await createExperiment('active');
+    expect(firstRes.status).toBe(201);
+
+    const secondRes = await createExperiment('active');
+    expect(secondRes.status).toBe(409);
+    const body = await secondRes.json() as { error: { code: string; message: string } };
+    expect(body.error).toEqual({
+      code: 'active_experiment_conflict',
+      message: 'An active experiment already exists for this goal',
+    });
+  });
 });
 
 describe('GET/PATCH /api/v1/experiments/:id', () => {
-  async function createExperiment() {
+  async function createExperiment(status: 'planned' | 'active' = 'active') {
     const res = await app.request('/api/v1/experiments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,7 +104,7 @@ describe('GET/PATCH /api/v1/experiments/:id', () => {
         cost_level: 'low',
         boundary_level: 'safe',
         why_different: 'Switches from broad search to buyer-specific outreach',
-        status: 'active',
+        status,
       }),
     });
     return ((await res.json()) as { data: { id: string } }).data.id;
@@ -118,5 +136,23 @@ describe('GET/PATCH /api/v1/experiments/:id', () => {
       boundary_level: 'permission_required',
       expected_signal: 'User grants permission',
     }));
+  });
+
+  it('returns 409 instead of 500 when patching would create a second active experiment', async () => {
+    await createExperiment('active');
+    const plannedId = await createExperiment('planned');
+
+    const patchRes = await app.request(`/api/v1/experiments/${plannedId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'active' }),
+    });
+
+    expect(patchRes.status).toBe(409);
+    const body = await patchRes.json() as { error: { code: string; message: string } };
+    expect(body.error).toEqual({
+      code: 'active_experiment_conflict',
+      message: 'An active experiment already exists for this goal',
+    });
   });
 });
