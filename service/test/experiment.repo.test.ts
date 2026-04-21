@@ -98,6 +98,15 @@ describe('ExperimentRepo', () => {
     expect(repo.update('goal-engine-demo', 'missing', { status: 'abandoned' })).toBeNull();
   });
 
+  it('allows only one active experiment per goal', () => {
+    const { db } = seedGoal('goal-engine-demo', 'goal_1');
+    const repo = new ExperimentRepo(db);
+    repo.create(createExperiment({ id: 'exp_active_1', status: 'active' }));
+
+    expect(() => repo.create(createExperiment({ id: 'exp_active_2', status: 'active' }))).toThrow();
+    expect(() => repo.create(createExperiment({ id: 'exp_planned', status: 'planned' }))).not.toThrow();
+  });
+
   it('persists experiment linkage on attempts and keeps legacy attempts readable', () => {
     const { db } = seedGoal('goal-engine-demo', 'goal_1');
     const experimentRepo = new ExperimentRepo(db);
@@ -144,6 +153,40 @@ describe('ExperimentRepo', () => {
         agentId: 'goal-engine-demo',
         goalId: 'goal_1',
         experimentId: 'missing_exp',
+        stage: 'channel-validation',
+        actionTaken: 'Sent draft for approval',
+        strategyTags: ['direct-outreach'],
+        result: 'partial',
+        createdAt: nowIso(),
+      })
+    ).toThrow();
+  });
+
+  it('rejects attempts linked to an experiment from a different goal scope', () => {
+    const { db } = seedGoal('goal-engine-demo', 'goal_1');
+    const goalRepo = new GoalRepo(db);
+    const experimentRepo = new ExperimentRepo(db);
+    const attemptRepo = new AttemptRepo(db);
+    goalRepo.create({
+      id: 'goal_2',
+      agentId: 'goal-engine-demo',
+      title: 'Other goal',
+      status: 'blocked',
+      successCriteria: [],
+      stopConditions: [],
+      priority: 2,
+      currentStage: 'other',
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    experimentRepo.create(createExperiment({ id: 'exp_other_goal', goalId: 'goal_2' }));
+
+    expect(() =>
+      attemptRepo.create({
+        id: 'attempt_cross_scope',
+        agentId: 'goal-engine-demo',
+        goalId: 'goal_1',
+        experimentId: 'exp_other_goal',
         stage: 'channel-validation',
         actionTaken: 'Sent draft for approval',
         strategyTags: ['direct-outreach'],

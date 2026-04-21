@@ -302,7 +302,8 @@ function migrateAttemptsCompositeForeignKeyIfNeeded(db: Database.Database): void
     return;
   }
 
-	 db.exec(`
+  const migrate = db.transaction(() => {
+    db.exec(`
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
 	  ON goals(agent_id, id);
 	${EXPERIMENTS_TABLE_SQL}
@@ -347,6 +348,9 @@ CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
 	CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_experiment
 	  ON attempts(agent_id, goal_id, experiment_id);
 	`);
+  });
+
+  migrate();
 }
 
 function migrateReflectionsCompositeForeignKeyIfNeeded(db: Database.Database): void {
