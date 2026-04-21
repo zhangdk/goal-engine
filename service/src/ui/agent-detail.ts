@@ -61,6 +61,13 @@ export function buildAgentDetail(
     lastPath: string | null;
     nextPath: string | null;
     whyDifferent: string | null;
+    activeExperiment: {
+      id: string;
+      stage: string;
+      status: string;
+      whyDifferent: string;
+      expectedSignal: string;
+    } | null;
     forbiddenPaths: string[];
   };
   goalHistory: Array<{
@@ -151,6 +158,7 @@ export function buildAgentDetail(
     retryChecks,
     recoveryEvents,
     knowledge,
+    activeExperiment: recovery?.activeExperiment,
   });
   const projectionObservations = attachedGoal
     ? buildProjectionObservations({
@@ -171,6 +179,7 @@ export function buildAgentDetail(
     policy,
     retryChecks,
     runtimeEvents,
+    activeExperiment: recovery?.activeExperiment,
   });
   const verdict = evaluateLearningVerdict({
     attempts,
@@ -260,6 +269,15 @@ export function buildAgentDetail(
       lastPath: executionPathState.lastPath,
       nextPath: executionPathState.nextPath,
       whyDifferent: executionPathState.whyDifferent,
+      activeExperiment: recovery?.activeExperiment
+        ? {
+            id: recovery.activeExperiment.id,
+            stage: recovery.activeExperiment.stage,
+            status: recovery.activeExperiment.status,
+            whyDifferent: recovery.activeExperiment.whyDifferent,
+            expectedSignal: recovery.activeExperiment.expectedSignal,
+          }
+        : null,
       forbiddenPaths: executionPathState.forbiddenPaths,
       currentRisk:
         verdict.overall.level === 'stalled'

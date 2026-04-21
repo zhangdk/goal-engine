@@ -8,6 +8,7 @@ import { KnowledgeRepo } from '../src/repos/knowledge.repo.js';
 import { KnowledgePromotionRepo } from '../src/repos/knowledge-promotion.repo.js';
 import { GoalContractRepo } from '../src/repos/goal-contract.repo.js';
 import { GoalCompletionRepo } from '../src/repos/goal-completion.repo.js';
+import { ExperimentRepo } from '../src/repos/experiment.repo.js';
 import { RecoveryService } from '../src/services/recovery.service.js';
 import { KnowledgeService } from '../src/services/knowledge.service.js';
 
@@ -19,6 +20,7 @@ let knowledgeRepo: KnowledgeRepo;
 let knowledgePromotionRepo: KnowledgePromotionRepo;
 let goalContractRepo: GoalContractRepo;
 let goalCompletionRepo: GoalCompletionRepo;
+let experimentRepo: ExperimentRepo;
 let knowledgeService: KnowledgeService;
 let recoveryService: RecoveryService;
 
@@ -31,6 +33,7 @@ beforeEach(() => {
   knowledgePromotionRepo = new KnowledgePromotionRepo(db);
   goalContractRepo = new GoalContractRepo(db);
   goalCompletionRepo = new GoalCompletionRepo(db);
+  experimentRepo = new ExperimentRepo(db);
   knowledgeService = new KnowledgeService(knowledgeRepo, knowledgePromotionRepo);
   recoveryService = new RecoveryService(
     goalRepo,
@@ -38,6 +41,7 @@ beforeEach(() => {
     policyRepo,
     goalContractRepo,
     goalCompletionRepo,
+    experimentRepo,
     knowledgeService
   );
 });
@@ -257,6 +261,36 @@ describe('RecoveryService', () => {
       expect.objectContaining({
         visibility: 'global',
         subject: 'event_search',
+      })
+    );
+  });
+
+  it('includes the active experiment for the goal', () => {
+    const goalId = createGoal();
+    const now = nowIso();
+    experimentRepo.create({
+      id: 'exp_active',
+      agentId: 'goal-engine-demo',
+      goalId,
+      stage: 'channel-validation',
+      hypothesis: 'Direct outreach will produce reply evidence faster than broad search',
+      actionPlan: 'Prepare 5 targeted outreach drafts',
+      expectedSignal: 'At least one concrete reply or permission boundary',
+      costLevel: 'low',
+      boundaryLevel: 'safe',
+      whyDifferent: 'Switches from broad search to buyer-specific outreach',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const packet = recoveryService.build(goalId);
+
+    expect(packet?.activeExperiment).toEqual(
+      expect.objectContaining({
+        id: 'exp_active',
+        status: 'active',
+        whyDifferent: expect.stringContaining('broad search'),
       })
     );
   });

@@ -4,7 +4,7 @@ import type { RecoveryService } from '../services/recovery.service.js';
 import type { RecoveryEventRepo } from '../repos/recovery-event.repo.js';
 import type { KnowledgeReferenceEventRepo } from '../repos/knowledge-reference-event.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
-import type { GoalCompletion, GoalContract, RecoveryPacketCurrentPolicy, RecoveryPacketRecentAttempt } from '../../../shared/types.js';
+import type { Experiment, GoalCompletion, GoalContract, RecoveryPacketCurrentPolicy, RecoveryPacketRecentAttempt } from '../../../shared/types.js';
 import { knowledgeToSnakeCase, promotionToSnakeCase } from './knowledge.js';
 import { resolveAgentContext } from '../agent-context.js';
 
@@ -63,6 +63,7 @@ export function recoveryRouter(
         success_criteria: packet.successCriteria,
         contract: packet.contract ? contractToSnakeCase(packet.contract) : undefined,
         completion: packet.completion ? completionToSnakeCase(packet.completion) : undefined,
+        active_experiment: packet.activeExperiment ? experimentToSnakeCase(packet.activeExperiment) : undefined,
         last_meaningful_progress: packet.lastMeaningfulProgress,
         last_failure_summary: packet.lastFailureSummary,
         avoid_strategies: packet.avoidStrategies,
@@ -102,6 +103,24 @@ function completionToSnakeCase(completion: GoalCompletion) {
     evidence_ids: completion.evidenceIds,
     summary: completion.summary,
     completed_at: completion.completedAt,
+  };
+}
+
+function experimentToSnakeCase(experiment: Experiment) {
+  return {
+    id: experiment.id,
+    agent_id: experiment.agentId,
+    goal_id: experiment.goalId,
+    stage: experiment.stage,
+    hypothesis: experiment.hypothesis,
+    action_plan: experiment.actionPlan,
+    expected_signal: experiment.expectedSignal,
+    cost_level: experiment.costLevel,
+    boundary_level: experiment.boundaryLevel,
+    why_different: experiment.whyDifferent,
+    status: experiment.status,
+    created_at: experiment.createdAt,
+    updated_at: experiment.updatedAt,
   };
 }
 

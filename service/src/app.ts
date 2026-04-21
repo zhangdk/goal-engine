@@ -79,6 +79,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
     policyRepo,
     goalContractRepo,
     goalCompletionRepo,
+    experimentRepo,
     knowledgeService
   );
   const goalAgentHistoryService = new GoalAgentHistoryService(goalRepo, goalAgentAssignmentRepo, {

@@ -5,6 +5,7 @@ import type {
   Reflection,
   RetryCheckEvent,
   Knowledge,
+  Experiment,
 } from '../../../shared/types.js';
 
 export type TimelineEventType =
@@ -16,6 +17,7 @@ export type TimelineEventType =
   | 'knowledge'
   | 'progress'
   | 'projection_notice'
+  | 'experiment'
   | 'runtime_signal';
 
 export type TimelineEvent = {
@@ -35,6 +37,7 @@ type TimelineInput = {
   retryChecks: RetryCheckEvent[];
   recoveryEvents: RecoveryEvent[];
   knowledge: Knowledge[];
+  activeExperiment?: Experiment;
 };
 
 export function buildTimeline(input: TimelineInput): TimelineEvent[] {
@@ -143,8 +146,21 @@ export function buildTimeline(input: TimelineInput): TimelineEvent[] {
     impact: `可能原因：${knowledge.hypothesis}。下一步：${knowledge.implication}`,
     linkedIds: knowledge.sourceAttemptId ? [`failure:${knowledge.sourceAttemptId}`] : [],
   }));
+  const experimentEvents: TimelineEvent[] = input.activeExperiment
+    ? [
+        {
+          id: `experiment:${input.activeExperiment.id}`,
+          timestamp: input.activeExperiment.updatedAt,
+          type: 'experiment' as const,
+          title: '实验',
+          summary: input.activeExperiment.hypothesis,
+          impact: `Expected signal: ${input.activeExperiment.expectedSignal} | Why different: ${input.activeExperiment.whyDifferent}`,
+          linkedIds: [`goal:${input.activeExperiment.goalId}`],
+        },
+      ]
+    : [];
 
-  return [...attemptEvents, ...reflectionEvents, ...policyEvents, ...retryCheckEvents, ...recoveryEvents, ...knowledgeEvents].sort(
+  return [...attemptEvents, ...reflectionEvents, ...policyEvents, ...retryCheckEvents, ...recoveryEvents, ...knowledgeEvents, ...experimentEvents].sort(
     (left: TimelineEvent, right: TimelineEvent) => right.timestamp.localeCompare(left.timestamp)
   );
 }

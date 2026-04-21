@@ -74,6 +74,13 @@ type AgentDetailResponse = {
       last_path: string | null;
       next_path: string | null;
       why_different: string | null;
+      active_experiment: {
+        id: string;
+        stage: string;
+        status: string;
+        why_different: string;
+        expected_signal: string;
+      } | null;
       forbidden_paths: string[];
     };
     goal_history: Array<{
@@ -90,7 +97,7 @@ type AgentDetailResponse = {
     timeline: Array<{
       id: string;
       timestamp: string;
-      type: 'failure' | 'reflection' | 'policy_update' | 'retry_check' | 'recovery' | 'progress' | 'projection_notice' | 'runtime_signal' | 'knowledge';
+      type: 'failure' | 'reflection' | 'policy_update' | 'retry_check' | 'recovery' | 'progress' | 'projection_notice' | 'runtime_signal' | 'knowledge' | 'experiment';
       title: string;
       summary: string;
       impact: string;
@@ -471,6 +478,56 @@ describe('UI agent routes', () => {
         expect.objectContaining({
           key: 'recovery_history',
           status: 'missing',
+        }),
+      ])
+    );
+  });
+
+  it('shows active experiment state in managed-agent detail', async () => {
+    const goalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Experiment visible journey',
+        success_criteria: ['A concrete reply exists'],
+        stop_conditions: [],
+        current_stage: 'channel-validation',
+      }),
+    });
+    const goalId = ((await goalRes.json()) as { data: { id: string } }).data.id;
+
+    await app.request('/api/v1/experiments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        stage: 'channel-validation',
+        hypothesis: 'Direct outreach will produce reply evidence faster than broad search',
+        action_plan: 'Prepare 5 targeted outreach drafts',
+        expected_signal: 'At least one concrete reply or permission boundary',
+        cost_level: 'low',
+        boundary_level: 'safe',
+        why_different: 'Switches from broad search to buyer-specific outreach',
+        status: 'active',
+      }),
+    });
+
+    const detailRes = await app.request('/api/v1/ui/agents/goal-engine-demo');
+    expect(detailRes.status).toBe(200);
+    const detailBody = (await detailRes.json()) as AgentDetailResponse;
+
+    expect(detailBody.data.current_state.active_experiment).toEqual(
+      expect.objectContaining({
+        status: 'active',
+        expected_signal: expect.stringContaining('reply'),
+      })
+    );
+    expect(detailBody.data.current_state.why_different).toContain('broad search');
+    expect(detailBody.data.timeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'experiment',
+          impact: expect.stringContaining('Expected signal'),
         }),
       ])
     );
