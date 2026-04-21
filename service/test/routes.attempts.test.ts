@@ -132,6 +132,41 @@ describe('POST /api/v1/attempts', () => {
     expect(body.error.code).toBe('not_found');
     expect(body.error.message).toBe('Goal not found');
   });
+
+  it('stores experiment_id on an attempt when provided', async () => {
+    const experimentRes = await app.request('/api/v1/experiments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        stage: 'channel-validation',
+        hypothesis: 'Direct outreach will produce reply evidence faster than broad search',
+        action_plan: 'Prepare 5 targeted outreach drafts',
+        expected_signal: 'At least one concrete reply or permission boundary',
+        cost_level: 'low',
+        boundary_level: 'safe',
+        why_different: 'Switches from broad search to buyer-specific outreach',
+        status: 'active',
+      }),
+    });
+    const experimentId = ((await experimentRes.json()) as { data: { id: string } }).data.id;
+
+    const res = await app.request('/api/v1/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        experiment_id: experimentId,
+        stage: 'channel-validation',
+        action_taken: 'Sent draft for approval',
+        strategy_tags: ['direct-outreach'],
+        result: 'partial',
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as { data: { experiment_id?: string } }).data.experiment_id).toBe(experimentId);
+  });
 });
 
 describe('GET /api/v1/attempts', () => {

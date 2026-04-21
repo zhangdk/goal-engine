@@ -20,6 +20,7 @@ type AttemptFailureTypeInput = (typeof FAILURE_TYPES)[number] | keyof typeof FAI
 const createAttemptSchema = z
   .object({
     goal_id: z.string().min(1),
+    experiment_id: z.string().min(1).optional(),
     stage: z.string().min(1),
     action_taken: z.string().min(1),
     strategy_tags: z.array(z.string()),
@@ -56,6 +57,7 @@ export function attemptsRouter(
         id,
         agentId,
         goalId: data.goal_id,
+        experimentId: data.experiment_id,
         stage: data.stage,
         actionTaken: data.action_taken,
         strategyTags: data.strategy_tags,
@@ -133,12 +135,14 @@ function toSnakeCase(attempt: {
   failureType?: string;
   confidence?: number;
   nextHypothesis?: string;
+  experimentId?: string;
   createdAt: string;
 }) {
   return {
     id: attempt.id,
     agent_id: attempt.agentId,
     goal_id: attempt.goalId,
+    experiment_id: attempt.experimentId,
     stage: attempt.stage,
     action_taken: attempt.actionTaken,
     strategy_tags: attempt.strategyTags,
