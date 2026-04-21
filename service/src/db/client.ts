@@ -26,11 +26,31 @@ CREATE INDEX IF NOT EXISTS idx_goal_agent_assignments_agent_id_assigned_at
 CREATE UNIQUE INDEX IF NOT EXISTS idx_goal_agent_assignments_one_open_per_goal
   ON goal_agent_assignments(goal_id)
   WHERE released_at IS NULL;`;
+const EXPERIMENTS_TABLE_SQL = `
+CREATE TABLE IF NOT EXISTS experiments (
+  id              TEXT PRIMARY KEY,
+  agent_id        TEXT NOT NULL REFERENCES agents(id),
+  goal_id         TEXT NOT NULL,
+  stage           TEXT NOT NULL,
+  hypothesis      TEXT NOT NULL,
+  action_plan     TEXT NOT NULL,
+  expected_signal TEXT NOT NULL,
+  cost_level      TEXT NOT NULL CHECK(cost_level IN ('low','medium','high')),
+  boundary_level  TEXT NOT NULL CHECK(boundary_level IN ('safe','permission_required','blocked')),
+  why_different   TEXT NOT NULL,
+  status          TEXT NOT NULL CHECK(status IN ('planned','active','completed','abandoned','blocked')),
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL,
+  UNIQUE(agent_id, id),
+  UNIQUE(agent_id, goal_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);`;
 const ATTEMPTS_TABLE_SQL = `
 CREATE TABLE attempts (
   id             TEXT PRIMARY KEY,
   agent_id       TEXT NOT NULL REFERENCES agents(id),
   goal_id        TEXT NOT NULL,
+  experiment_id  TEXT,
   stage          TEXT NOT NULL,
   action_taken   TEXT NOT NULL,
   strategy_tags  TEXT NOT NULL DEFAULT '[]',
@@ -43,8 +63,10 @@ CREATE TABLE attempts (
   next_hypothesis TEXT,
   created_at     TEXT NOT NULL,
   CHECK(result != 'failure' OR failure_type IS NOT NULL),
+  UNIQUE(agent_id, goal_id, id),
   UNIQUE(agent_id, id),
-  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE,
+  FOREIGN KEY(agent_id, goal_id, experiment_id) REFERENCES experiments(agent_id, goal_id, id)
 );`;
 const REFLECTIONS_TABLE_SQL = `
 CREATE TABLE reflections (
@@ -181,6 +203,11 @@ function foreignKeyCount(db: Database.Database, table: string): number {
   return (db.prepare(`PRAGMA foreign_key_list(${table})`).all() as unknown[]).length;
 }
 
+function hasForeignKeyToTable(db: Database.Database, table: string, referencedTable: string): boolean {
+  const rows = db.prepare(`PRAGMA foreign_key_list(${table})`).all() as Array<{ table: string }>;
+  return rows.some((row) => row.table === referencedTable);
+}
+
 function ensureAgentsTable(db: Database.Database): void {
   db.exec(`
 CREATE TABLE IF NOT EXISTS agents (
@@ -235,6 +262,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_agent_id_id
   ON attempts(agent_id, id);
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
   ON attempts(agent_id, goal_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_experiment
+  ON attempts(agent_id, goal_id, experiment_id);
 CREATE INDEX IF NOT EXISTS idx_reflections_agent_goal_created
   ON reflections(agent_id, goal_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_policies_agent_goal
@@ -247,11 +276,15 @@ CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
 }
 
 function migrateAttemptsCompositeForeignKeyIfNeeded(db: Database.Database): void {
-  if (!tableExists(db, 'attempts') || foreignKeyCount(db, 'attempts') > 0) {
+  if (!tableExists(db, 'attempts')) {
     return;
   }
 
   const columns = tableColumns(db, 'attempts');
+  if (columns.has('experiment_id') && hasForeignKeyToTable(db, 'attempts', 'experiments')) {
+    return;
+  }
+
   const hasRequiredColumns = [
     'id',
     'agent_id',
@@ -269,20 +302,24 @@ function migrateAttemptsCompositeForeignKeyIfNeeded(db: Database.Database): void
     return;
   }
 
-  db.exec(`
-CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
-  ON goals(agent_id, id);
-DROP INDEX IF EXISTS idx_attempts_agent_goal_created;
-DROP INDEX IF EXISTS idx_attempts_created_at;
-ALTER TABLE attempts RENAME TO attempts_legacy;
-${ATTEMPTS_TABLE_SQL}
-INSERT INTO attempts (
-  id,
-  agent_id,
-  goal_id,
-  stage,
-  action_taken,
-  strategy_tags,
+  const migrate = db.transaction(() => {
+    db.exec(`
+	CREATE UNIQUE INDEX IF NOT EXISTS idx_goals_agent_id_id
+	  ON goals(agent_id, id);
+	${EXPERIMENTS_TABLE_SQL}
+	DROP INDEX IF EXISTS idx_attempts_agent_goal_created;
+	DROP INDEX IF EXISTS idx_attempts_created_at;
+	DROP INDEX IF EXISTS idx_attempts_agent_goal_experiment;
+	ALTER TABLE attempts RENAME TO attempts_legacy;
+	${ATTEMPTS_TABLE_SQL}
+	INSERT INTO attempts (
+	  id,
+	  agent_id,
+	  goal_id,
+	  experiment_id,
+	  stage,
+	  action_taken,
+	  strategy_tags,
   result,
   failure_type,
   confidence,
@@ -290,12 +327,13 @@ INSERT INTO attempts (
   created_at
 )
 SELECT
-  id,
-  agent_id,
-  goal_id,
-  stage,
-  action_taken,
-  strategy_tags,
+	  id,
+	  agent_id,
+	  goal_id,
+	  ${columns.has('experiment_id') ? 'experiment_id' : 'NULL AS experiment_id'},
+	  stage,
+	  action_taken,
+	  strategy_tags,
   result,
   failure_type,
   confidence,
@@ -305,9 +343,14 @@ FROM attempts_legacy;
 DROP TABLE attempts_legacy;
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created
   ON attempts(agent_id, goal_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_attempts_created_at
-  ON attempts(created_at);
-`);
+	CREATE INDEX IF NOT EXISTS idx_attempts_created_at
+	  ON attempts(created_at);
+	CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_experiment
+	  ON attempts(agent_id, goal_id, experiment_id);
+	`);
+  });
+
+  migrate();
 }
 
 function migrateReflectionsCompositeForeignKeyIfNeeded(db: Database.Database): void {

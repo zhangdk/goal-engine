@@ -1,4 +1,4 @@
-import type { Attempt, Policy, RetryCheckEvent } from '../../../shared/types.js';
+import type { Attempt, Experiment, Policy, RetryCheckEvent } from '../../../shared/types.js';
 import type { GoalEngineRuntimeEvent } from './managed-openclaw-agents.js';
 
 type PathSnapshot = {
@@ -28,6 +28,7 @@ type ExecutionPathInput = {
   policy: Policy | null;
   retryChecks: RetryCheckEvent[];
   runtimeEvents: GoalEngineRuntimeEvent[];
+  activeExperiment?: Experiment;
 };
 
 const PATH_PATTERNS: Array<{ key: string; label: string; patterns: RegExp[] }> = [
@@ -139,6 +140,7 @@ export function deriveExecutionPathState(input: ExecutionPathInput): ExecutionPa
       previousAttempt,
       latestAttempt,
       policy: input.policy,
+      activeExperiment: input.activeExperiment,
     }),
     forbiddenPaths,
     latestFailurePathKey: latestFailureSnapshot?.key ?? null,
@@ -161,7 +163,12 @@ function deriveWhyDifferent(input: {
   previousAttempt: PathSnapshot | null;
   latestAttempt: PathSnapshot | null;
   policy: Policy | null;
+  activeExperiment?: Experiment;
 }): string | null {
+  if (input.activeExperiment?.whyDifferent.trim()) {
+    return input.activeExperiment.whyDifferent.trim();
+  }
+
   if (input.latestRetry?.whatChanged?.trim()) {
     return input.latestRetry.whatChanged.trim();
   }

@@ -160,6 +160,15 @@ function toSnakeCaseDetail(view: NonNullable<ReturnType<typeof buildAgentDetail>
       last_path: view.currentState.lastPath,
       next_path: view.currentState.nextPath,
       why_different: view.currentState.whyDifferent,
+      active_experiment: view.currentState.activeExperiment
+        ? {
+            id: view.currentState.activeExperiment.id,
+            stage: view.currentState.activeExperiment.stage,
+            status: view.currentState.activeExperiment.status,
+            why_different: view.currentState.activeExperiment.whyDifferent,
+            expected_signal: view.currentState.activeExperiment.expectedSignal,
+          }
+        : null,
       forbidden_paths: view.currentState.forbiddenPaths,
     },
     goal_history: view.goalHistory.map((item) => ({

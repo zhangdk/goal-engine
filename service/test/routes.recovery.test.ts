@@ -205,6 +205,58 @@ describe('GET /api/v1/recovery-packet', () => {
     }));
   });
 
+  it('surfaces the active experiment when present', async () => {
+    const goalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Experiment-aware recovery goal',
+        success_criteria: ['A concrete reply exists'],
+        stop_conditions: [],
+        current_stage: 'channel-validation',
+      }),
+    });
+    goalId = ((await goalRes.json()) as { data: { id: string } }).data.id;
+
+    const experimentRes = await app.request('/api/v1/experiments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        stage: 'channel-validation',
+        hypothesis: 'Direct outreach will produce reply evidence faster than broad search',
+        action_plan: 'Prepare 5 targeted outreach drafts',
+        expected_signal: 'At least one concrete reply or permission boundary',
+        cost_level: 'low',
+        boundary_level: 'safe',
+        why_different: 'Switches from broad search to buyer-specific outreach',
+        status: 'active',
+      }),
+    });
+    const experimentId = ((await experimentRes.json()) as { data: { id: string } }).data.id;
+
+    const res = await app.request(`/api/v1/recovery-packet?goal_id=${goalId}`);
+    expect(res.status).toBe(200);
+    const body = await res.json() as {
+      data: {
+        active_experiment?: {
+          id: string;
+          status: string;
+          why_different: string;
+          expected_signal: string;
+        };
+      };
+    };
+    expect(body.data.active_experiment).toEqual(
+      expect.objectContaining({
+        id: experimentId,
+        status: 'active',
+        why_different: expect.stringContaining('broad search'),
+        expected_signal: expect.stringContaining('reply'),
+      })
+    );
+  });
+
   it('does not recover another agent goal by id', async () => {
     const goalRes = await app.request('/api/v1/goals', {
       method: 'POST',

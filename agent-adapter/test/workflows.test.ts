@@ -404,8 +404,22 @@ describe('showGoalStatus', () => {
             goal_id: 'goal_1',
             goal_title: 'Fact-visible goal',
             current_stage: 'done',
-            success_criteria: ['Payment confirmation exists'],
-            contract: {
+	            success_criteria: ['Payment confirmation exists'],
+            active_experiment: {
+              id: 'exp_1',
+              goal_id: 'goal_1',
+              stage: 'channel-validation',
+              hypothesis: 'Direct outreach is faster',
+              action_plan: 'Prepare drafts',
+              expected_signal: 'At least one reply',
+              cost_level: 'low',
+              boundary_level: 'safe',
+              why_different: 'Switches from broad search',
+              status: 'active',
+              created_at: '2026-04-17T00:00:00.000Z',
+              updated_at: '2026-04-17T00:00:00.000Z',
+            },
+	            contract: {
               id: 'contract_1',
               outcome: 'Earn 100 RMB',
               success_evidence: ['Payment confirmation exists'],
@@ -441,9 +455,12 @@ describe('showGoalStatus', () => {
 
     const result = await showGoalStatus(client, { projectionDir });
 
-    expect(result.summary).toContain('Contract: Earn 100 RMB');
-    expect(result.summary).toContain('Completion: verified by Goal Engine with 1 evidence item');
-  });
+	    expect(result.summary).toContain('Contract: Earn 100 RMB');
+	    expect(result.summary).toContain('Completion: verified by Goal Engine with 1 evidence item');
+    expect(result.summary).toContain('Active experiment');
+    expect(result.summary).toContain('Expected signal');
+    expect(result.summary).toContain('Why different');
+	  });
 
   it('shows relevant knowledge in goal status output', async () => {
     const fetch = vi
@@ -841,15 +858,17 @@ describe('recordFailureAndRefresh', () => {
       stage: 'integration',
       actionTaken: 'Repeated the same path',
       strategyTags: ['repeat'],
-      failureType: 'stuck_loop',
-      projectionDir,
-    });
+	      failureType: 'stuck_loop',
+      experimentId: 'exp_1',
+	      projectionDir,
+	    });
 
     expect(result.attemptId).toBe('attempt_1');
     expect(result.guidanceSummary).toContain('强制切换路径');
     expect(result.guidanceSummary).toContain('repeat');
-    expect(readFileSync(join(projectionDir, 'current-policy.md'), 'utf-8')).toContain('repeat');
-  });
+	    expect(readFileSync(join(projectionDir, 'current-policy.md'), 'utf-8')).toContain('repeat');
+    expect(JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string).experiment_id).toBe('exp_1');
+	  });
 });
 
 describe('recoverGoalSession', () => {
@@ -864,8 +883,22 @@ describe('recoverGoalSession', () => {
             goal_id: 'goal_1',
             goal_title: 'Ship Goal Engine UX',
             current_stage: 'integration',
-            success_criteria: ['One OpenClaw user flow works'],
-            last_failure_summary: 'Repeated the same path',
+	            success_criteria: ['One OpenClaw user flow works'],
+            active_experiment: {
+              id: 'exp_1',
+              goal_id: 'goal_1',
+              stage: 'channel-validation',
+              hypothesis: 'Direct outreach is faster',
+              action_plan: 'Prepare drafts',
+              expected_signal: 'At least one reply',
+              cost_level: 'low',
+              boundary_level: 'safe',
+              why_different: 'Switches from broad search',
+              status: 'active',
+              created_at: '2026-04-04T10:01:00.000Z',
+              updated_at: '2026-04-04T10:01:00.000Z',
+            },
+	            last_failure_summary: 'Repeated the same path',
             avoid_strategies: ['repeat'],
             preferred_next_step: 'Try a different path',
             generated_at: '2026-04-04T10:01:00.000Z',
@@ -890,8 +923,11 @@ describe('recoverGoalSession', () => {
     const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
     const result = await recoverGoalSession(client, { goalId: 'goal_1' });
 
-    expect(result.summary).toContain('Ship Goal Engine UX');
-    expect(result.summary).toContain('Repeated the same path');
+	    expect(result.summary).toContain('Ship Goal Engine UX');
+    expect(result.summary).toContain('Active experiment');
+    expect(result.summary).toContain('Expected signal');
+    expect(result.summary).toContain('Why different');
+	    expect(result.summary).toContain('Repeated the same path');
     expect(result.summary).toContain('Try a different path');
   });
 

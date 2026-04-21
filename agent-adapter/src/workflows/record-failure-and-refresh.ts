@@ -7,6 +7,7 @@ import { refreshProjections } from '../projections/refresh-projections.js';
 
 export type RecordFailureAndRefreshInput = {
   goalId: string;
+  experimentId?: string;
   stage: string;
   actionTaken: string;
   strategyTags: string[];
@@ -27,6 +28,7 @@ export async function recordFailureAndRefresh(
 ): Promise<RecordFailureAndRefreshResult> {
   const attempt = await attemptAppend(client, {
     goalId: input.goalId,
+    experimentId: input.experimentId,
     stage: input.stage,
     actionTaken: input.actionTaken,
     strategyTags: input.strategyTags,

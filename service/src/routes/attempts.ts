@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import * as runtimeModule from '../../../shared/runtime.js';
 import type { FailureType } from '../../../shared/types.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
+import type { ExperimentRepo } from '../repos/experiment.repo.js';
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
 import { resolveAgentContext } from '../agent-context.js';
@@ -20,6 +21,7 @@ type AttemptFailureTypeInput = (typeof FAILURE_TYPES)[number] | keyof typeof FAI
 const createAttemptSchema = z
   .object({
     goal_id: z.string().min(1),
+    experiment_id: z.string().min(1).optional(),
     stage: z.string().min(1),
     action_taken: z.string().min(1),
     strategy_tags: z.array(z.string()),
@@ -36,6 +38,7 @@ const createAttemptSchema = z
 export function attemptsRouter(
   goalRepo: GoalRepo,
   attemptRepo: AttemptRepo,
+  experimentRepo: ExperimentRepo,
   goalAgentHistoryService: GoalAgentHistoryService
 ): Hono {
   const router = new Hono();
@@ -50,12 +53,24 @@ export function attemptsRouter(
     const id = randomUUID();
     const now = new Date().toISOString();
     const failureType = normalizeFailureType(data.failure_type);
+    const goal = goalRepo.getById(agentId, data.goal_id);
+    if (!goal) {
+      return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
+    }
+
+    if (data.experiment_id) {
+      const experiment = experimentRepo.getById(agentId, data.experiment_id);
+      if (!experiment || experiment.goalId !== data.goal_id) {
+        return c.json({ error: { code: 'not_found', message: 'Experiment not found' } }, 404);
+      }
+    }
 
     try {
       attemptRepo.create({
         id,
         agentId,
         goalId: data.goal_id,
+        experimentId: data.experiment_id,
         stage: data.stage,
         actionTaken: data.action_taken,
         strategyTags: data.strategy_tags,
@@ -133,12 +148,14 @@ function toSnakeCase(attempt: {
   failureType?: string;
   confidence?: number;
   nextHypothesis?: string;
+  experimentId?: string;
   createdAt: string;
 }) {
   return {
     id: attempt.id,
     agent_id: attempt.agentId,
     goal_id: attempt.goalId,
+    experiment_id: attempt.experimentId,
     stage: attempt.stage,
     action_taken: attempt.actionTaken,
     strategy_tags: attempt.strategyTags,

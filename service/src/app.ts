@@ -11,6 +11,7 @@ import { GoalAgentAssignmentRepo } from './repos/goal-agent-assignment.repo.js';
 import { GoalContractRepo } from './repos/goal-contract.repo.js';
 import { AttemptEvidenceRepo } from './repos/attempt-evidence.repo.js';
 import { GoalCompletionRepo } from './repos/goal-completion.repo.js';
+import { ExperimentRepo } from './repos/experiment.repo.js';
 import { KnowledgeRepo } from './repos/knowledge.repo.js';
 import { KnowledgePromotionRepo } from './repos/knowledge-promotion.repo.js';
 import { KnowledgeReferenceEventRepo } from './repos/knowledge-reference-event.repo.js';
@@ -26,6 +27,7 @@ import { policiesRouter } from './routes/policies.js';
 import { retryGuardRouter } from './routes/retry-guard.js';
 import { recoveryRouter } from './routes/recovery.js';
 import { knowledgeRouter } from './routes/knowledge.js';
+import { experimentsRouter } from './routes/experiments.js';
 import { healthRouter } from './routes/health.js';
 import { uiApiRouter, uiPageRouter } from './routes/ui.js';
 
@@ -63,6 +65,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   const goalContractRepo = new GoalContractRepo(db);
   const attemptEvidenceRepo = new AttemptEvidenceRepo(db);
   const goalCompletionRepo = new GoalCompletionRepo(db);
+  const experimentRepo = new ExperimentRepo(db);
   const knowledgeRepo = new KnowledgeRepo(db);
   const knowledgePromotionRepo = new KnowledgePromotionRepo(db);
   const knowledgeReferenceEventRepo = new KnowledgeReferenceEventRepo(db);
@@ -76,6 +79,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
     policyRepo,
     goalContractRepo,
     goalCompletionRepo,
+    experimentRepo,
     knowledgeService
   );
   const goalAgentHistoryService = new GoalAgentHistoryService(goalRepo, goalAgentAssignmentRepo, {
@@ -94,7 +98,8 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
     goalCompletionRepo
   ));
   app.route('/api/v1/evidence', evidenceRouter(goalRepo, attemptRepo, attemptEvidenceRepo));
-  app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, goalAgentHistoryService));
+  app.route('/api/v1', experimentsRouter(goalRepo, experimentRepo));
+  app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, experimentRepo, goalAgentHistoryService));
   app.route('/api/v1/reflections', reflectionsRouter(policyService, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
   app.route('/api/v1/retry-guard', retryGuardRouter(

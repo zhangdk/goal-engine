@@ -3,6 +3,7 @@ import type { Attempt, FailureType } from '../../../shared/types.js';
 
 type AttemptInput = {
   goalId: string;
+  experimentId?: string;
   stage: string;
   actionTaken: string;
   strategyTags: string[];
@@ -16,6 +17,7 @@ type AttemptSnake = {
   id: string;
   agent_id?: string;
   goal_id: string;
+  experiment_id?: string;
   stage: string;
   action_taken: string;
   strategy_tags: string[];
@@ -31,6 +33,7 @@ function toCamel(raw: AttemptSnake): Attempt {
     id: raw.id,
     agentId: raw.agent_id ?? 'goal-engine-demo',
     goalId: raw.goal_id,
+    experimentId: raw.experiment_id,
     stage: raw.stage,
     actionTaken: raw.action_taken,
     strategyTags: raw.strategy_tags,
@@ -45,6 +48,7 @@ function toCamel(raw: AttemptSnake): Attempt {
 export async function attemptAppend(client: AdapterClient, input: AttemptInput): Promise<Attempt> {
   const raw = await client.post<AttemptSnake>('/api/v1/attempts', {
     goal_id: input.goalId,
+    experiment_id: input.experimentId,
     stage: input.stage,
     action_taken: input.actionTaken,
     strategy_tags: input.strategyTags,
