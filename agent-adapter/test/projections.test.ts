@@ -45,6 +45,20 @@ describe('refreshProjections', () => {
             success_criteria: ['One OpenClaw user flow works'],
             avoid_strategies: ['repeat'],
             preferred_next_step: 'Integrate explicit Goal Engine entrypoint',
+            active_experiment: {
+              id: 'exp_1',
+              goal_id: 'goal_1',
+              stage: 'channel-validation',
+              hypothesis: 'Direct outreach will find a faster lead',
+              action_plan: 'Send three tightly scoped messages',
+              expected_signal: 'At least one qualified reply',
+              cost_level: 'low',
+              boundary_level: 'safe',
+              why_different: 'Uses direct outreach instead of broad search',
+              status: 'active',
+              created_at: '2026-04-04T10:00:00.000Z',
+              updated_at: '2026-04-04T10:00:00.000Z',
+            },
             generated_at: '2026-04-04T10:00:00.000Z',
           },
         }),
@@ -76,7 +90,11 @@ describe('refreshProjections', () => {
     expect(result.policyLoaded).toBe(true);
     expect(readFileSync(join(projectionDir, 'current-goal.md'), 'utf-8')).toContain('Ship Goal Engine');
     expect(readFileSync(join(projectionDir, 'current-policy.md'), 'utf-8')).toContain('Integrate explicit Goal Engine entrypoint');
-    expect(readFileSync(join(projectionDir, 'recovery-packet.md'), 'utf-8')).toContain('repeat');
+    const recoveryProjection = readFileSync(join(projectionDir, 'recovery-packet.md'), 'utf-8');
+    expect(recoveryProjection).toContain('repeat');
+    expect(recoveryProjection).toContain('## Active Experiment');
+    expect(recoveryProjection).toContain('Expected signal: At least one qualified reply');
+    expect(recoveryProjection).toContain('Why different: Uses direct outreach instead of broad search');
   });
 
   it('still writes stable projection files when no policy exists yet', async () => {

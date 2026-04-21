@@ -125,6 +125,8 @@ ${packet.successCriteria.map(c => `- ${c}`).join('\n') || '（暂无）'}
 
 ${packet.avoidStrategies.map(s => `- \`${s}\``).join('\n') || '（暂无）'}
 
+${formatActiveExperiment(packet)}
+
 ## 推荐下一步
 
 ${packet.preferredNextStep ?? '（暂无推荐）'}
@@ -139,4 +141,22 @@ ${packet.lastFailureSummary ?? '（暂无）'}
 `;
 
   writeFileSync(join(projectionDir, 'recovery-packet.md'), content, 'utf-8');
+}
+
+function formatActiveExperiment(packet: RecoveryPacket): string {
+  const experiment = packet.activeExperiment;
+  if (!experiment) {
+    return '';
+  }
+
+  return `## Active Experiment
+
+- Stage: ${experiment.stage}
+- Status: ${experiment.status}
+- Hypothesis: ${experiment.hypothesis}
+- Action plan: ${experiment.actionPlan}
+- Expected signal: ${experiment.expectedSignal}
+- Why different: ${experiment.whyDifferent}
+- Boundary: ${experiment.boundaryLevel}
+- Cost: ${experiment.costLevel}`;
 }
