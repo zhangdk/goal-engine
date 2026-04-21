@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import * as runtimeModule from '../../../shared/runtime.js';
 import type { FailureType } from '../../../shared/types.js';
 import type { AttemptRepo } from '../repos/attempt.repo.js';
+import type { ExperimentRepo } from '../repos/experiment.repo.js';
 import type { GoalRepo } from '../repos/goal.repo.js';
 import type { GoalAgentHistoryService } from '../services/goal-agent-history.service.js';
 import { resolveAgentContext } from '../agent-context.js';
@@ -37,6 +38,7 @@ const createAttemptSchema = z
 export function attemptsRouter(
   goalRepo: GoalRepo,
   attemptRepo: AttemptRepo,
+  experimentRepo: ExperimentRepo,
   goalAgentHistoryService: GoalAgentHistoryService
 ): Hono {
   const router = new Hono();
@@ -51,6 +53,17 @@ export function attemptsRouter(
     const id = randomUUID();
     const now = new Date().toISOString();
     const failureType = normalizeFailureType(data.failure_type);
+    const goal = goalRepo.getById(agentId, data.goal_id);
+    if (!goal) {
+      return c.json({ error: { code: 'not_found', message: 'Goal not found' } }, 404);
+    }
+
+    if (data.experiment_id) {
+      const experiment = experimentRepo.getById(agentId, data.experiment_id);
+      if (!experiment || experiment.goalId !== data.goal_id) {
+        return c.json({ error: { code: 'not_found', message: 'Experiment not found' } }, 404);
+      }
+    }
 
     try {
       attemptRepo.create({

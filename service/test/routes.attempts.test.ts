@@ -167,6 +167,81 @@ describe('POST /api/v1/attempts', () => {
     expect(res.status).toBe(201);
     expect(((await res.json()) as { data: { experiment_id?: string } }).data.experiment_id).toBe(experimentId);
   });
+
+  it('returns 404 when experiment_id does not exist', async () => {
+    const res = await app.request('/api/v1/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        experiment_id: 'missing-experiment',
+        stage: 'channel-validation',
+        action_taken: 'Sent draft for approval',
+        strategy_tags: ['direct-outreach'],
+        result: 'partial',
+      }),
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('not_found');
+    expect(body.error.message).toBe('Experiment not found');
+  });
+
+  it('returns 404 when experiment_id belongs to another goal', async () => {
+    const completeCurrentGoalRes = await app.request(`/api/v1/goals/${goalId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'completed' }),
+    });
+    expect(completeCurrentGoalRes.status).toBe(200);
+
+    const otherGoalRes = await app.request('/api/v1/goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Other goal',
+        success_criteria: ['Other goal succeeds'],
+        stop_conditions: [],
+        current_stage: 'research',
+      }),
+    });
+    const otherGoalId = ((await otherGoalRes.json()) as { data: { id: string } }).data.id;
+    const experimentRes = await app.request('/api/v1/experiments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: otherGoalId,
+        stage: 'channel-validation',
+        hypothesis: 'Direct outreach will produce reply evidence faster than broad search',
+        action_plan: 'Prepare 5 targeted outreach drafts',
+        expected_signal: 'At least one concrete reply or permission boundary',
+        cost_level: 'low',
+        boundary_level: 'safe',
+        why_different: 'Switches from broad search to buyer-specific outreach',
+        status: 'active',
+      }),
+    });
+    const experimentId = ((await experimentRes.json()) as { data: { id: string } }).data.id;
+
+    const res = await app.request('/api/v1/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal_id: goalId,
+        experiment_id: experimentId,
+        stage: 'channel-validation',
+        action_taken: 'Sent draft for approval',
+        strategy_tags: ['direct-outreach'],
+        result: 'partial',
+      }),
+    });
+
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('not_found');
+    expect(body.error.message).toBe('Experiment not found');
+  });
 });
 
 describe('GET /api/v1/attempts', () => {

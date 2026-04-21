@@ -99,7 +99,7 @@ export function createApp(db: Database.Database, options?: CreateAppOptions): Ho
   ));
   app.route('/api/v1/evidence', evidenceRouter(goalRepo, attemptRepo, attemptEvidenceRepo));
   app.route('/api/v1', experimentsRouter(goalRepo, experimentRepo));
-  app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, goalAgentHistoryService));
+  app.route('/api/v1/attempts', attemptsRouter(goalRepo, attemptRepo, experimentRepo, goalAgentHistoryService));
   app.route('/api/v1/reflections', reflectionsRouter(policyService, attemptRepo, goalAgentHistoryService));
   app.route('/api/v1/policies', policiesRouter(goalRepo, policyRepo));
   app.route('/api/v1/retry-guard', retryGuardRouter(
