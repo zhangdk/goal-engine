@@ -203,6 +203,11 @@ function foreignKeyCount(db: Database.Database, table: string): number {
   return (db.prepare(`PRAGMA foreign_key_list(${table})`).all() as unknown[]).length;
 }
 
+function hasForeignKeyToTable(db: Database.Database, table: string, referencedTable: string): boolean {
+  const rows = db.prepare(`PRAGMA foreign_key_list(${table})`).all() as Array<{ table: string }>;
+  return rows.some((row) => row.table === referencedTable);
+}
+
 function ensureAgentsTable(db: Database.Database): void {
   db.exec(`
 CREATE TABLE IF NOT EXISTS agents (
@@ -271,11 +276,15 @@ CREATE INDEX IF NOT EXISTS idx_recovery_events_agent_goal_created_at
 }
 
 function migrateAttemptsCompositeForeignKeyIfNeeded(db: Database.Database): void {
-  if (!tableExists(db, 'attempts') || foreignKeyCount(db, 'attempts') > 0) {
+  if (!tableExists(db, 'attempts')) {
     return;
   }
 
   const columns = tableColumns(db, 'attempts');
+  if (columns.has('experiment_id') && hasForeignKeyToTable(db, 'attempts', 'experiments')) {
+    return;
+  }
+
   const hasRequiredColumns = [
     'id',
     'agent_id',

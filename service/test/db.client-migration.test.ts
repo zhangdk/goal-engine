@@ -622,6 +622,61 @@ INSERT INTO attempts VALUES ('a1', 'g1', 'init', 'action', '[]', 'success', NULL
     expect(attemptFks.length).toBeGreaterThan(0);
   });
 
+  it('upgrades existing agent-scoped attempts with experiment linkage', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+CREATE TABLE agents (
+  id TEXT PRIMARY KEY,
+  display_name TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE goals (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  success_criteria TEXT NOT NULL,
+  stop_conditions TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  current_stage TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(agent_id, id)
+);
+CREATE TABLE attempts (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  goal_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  action_taken TEXT NOT NULL,
+  strategy_tags TEXT NOT NULL,
+  result TEXT NOT NULL,
+  failure_type TEXT,
+  confidence REAL,
+  next_hypothesis TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(agent_id, id),
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+);
+INSERT INTO agents VALUES ('agent-a', 'Agent A', 't');
+INSERT INTO goals VALUES ('g1', 'agent-a', 'Goal', 'active', '[]', '[]', 1, 'init', 't', 't');
+INSERT INTO attempts VALUES ('a1', 'agent-a', 'g1', 'init', 'action', '[]', 'success', NULL, NULL, NULL, 't');
+`);
+
+    applySchema(db);
+
+    const attemptColumns = db.prepare(`PRAGMA table_info(attempts)`).all() as Array<{ name: string }>;
+    const attemptFks = db.prepare(`PRAGMA foreign_key_list(attempts)`).all() as Array<{ table: string }>;
+    const attemptIndexes = db.prepare(`PRAGMA index_list(attempts)`).all() as Array<{ name: string }>;
+    expect(attemptColumns.map((column) => column.name)).toContain('experiment_id');
+    expect(attemptFks.some((fk) => fk.table === 'experiments')).toBe(true);
+    expect(attemptIndexes.map((index) => index.name)).toContain('idx_attempts_agent_goal_experiment');
+    expect(db.prepare(`SELECT experiment_id FROM attempts WHERE id = 'a1'`).get()).toEqual({
+      experiment_id: null,
+    });
+  });
+
   it('recreates legacy dependent tables with composite foreign keys', () => {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
