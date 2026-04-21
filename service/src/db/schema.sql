@@ -48,11 +48,13 @@ CREATE TABLE IF NOT EXISTS attempts (
   CHECK(result != 'failure' OR failure_type IS NOT NULL),
   UNIQUE(agent_id, goal_id, id),
   UNIQUE(agent_id, id),
-  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
+  FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE,
+  FOREIGN KEY(agent_id, goal_id, experiment_id) REFERENCES experiments(agent_id, goal_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_created ON attempts(agent_id, goal_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_attempts_created_at ON attempts(created_at);
+CREATE INDEX IF NOT EXISTS idx_attempts_agent_goal_experiment ON attempts(agent_id, goal_id, experiment_id);
 
 CREATE TABLE IF NOT EXISTS experiments (
   id              TEXT PRIMARY KEY,
@@ -69,6 +71,7 @@ CREATE TABLE IF NOT EXISTS experiments (
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL,
   UNIQUE(agent_id, id),
+  UNIQUE(agent_id, goal_id, id),
   FOREIGN KEY(agent_id, goal_id) REFERENCES goals(agent_id, id) ON DELETE CASCADE
 );
 
