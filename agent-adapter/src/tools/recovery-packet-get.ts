@@ -3,12 +3,13 @@ import type {
   Knowledge,
   KnowledgePromotion,
   KnowledgeVisibility,
-  GoalCompletion,
-  GoalContract,
+	  GoalCompletion,
+	  GoalContract,
   RecoveryPacket,
   RecoveryPacketCurrentPolicy,
   RecoveryPacketRecentAttempt,
-} from '../../../shared/types.js';
+	} from '../../../shared/types.js';
+import { experimentToCamel, type ExperimentSnake } from './experiment-shape.js';
 
 type RecoverySnake = {
   agent_id?: string;
@@ -29,12 +30,13 @@ type RecoverySnake = {
     created_at?: string;
     updated_at?: string;
   };
-  completion?: {
+	  completion?: {
     id: string;
     evidence_ids: string[];
     summary: string;
     completed_at: string;
-  };
+	  };
+  active_experiment?: ExperimentSnake;
   last_meaningful_progress?: string;
   last_failure_summary?: string;
   avoid_strategies: string[];
@@ -88,8 +90,9 @@ function toCamel(raw: RecoverySnake): RecoveryPacket {
     goalTitle: raw.goal_title,
     currentStage: raw.current_stage,
     successCriteria: raw.success_criteria,
-    contract: raw.contract ? contractToCamel(raw.goal_id, raw.contract, raw.agent_id) : undefined,
-    completion: raw.completion ? completionToCamel(raw.goal_id, raw.completion, raw.agent_id) : undefined,
+	    contract: raw.contract ? contractToCamel(raw.goal_id, raw.contract, raw.agent_id) : undefined,
+	    completion: raw.completion ? completionToCamel(raw.goal_id, raw.completion, raw.agent_id) : undefined,
+    activeExperiment: raw.active_experiment ? experimentToCamel(raw.active_experiment) : undefined,
     lastMeaningfulProgress: raw.last_meaningful_progress,
     lastFailureSummary: raw.last_failure_summary,
     avoidStrategies: raw.avoid_strategies,

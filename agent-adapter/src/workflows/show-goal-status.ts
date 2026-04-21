@@ -132,7 +132,12 @@ function buildStatusSummary(input: {
     lines.push('Current guidance: not available yet.');
   }
 
-  if (input.recoveryPacket) {
+	  if (input.recoveryPacket) {
+    if (input.recoveryPacket.activeExperiment) {
+      lines.push(`Active experiment: ${input.recoveryPacket.activeExperiment.stage} (${input.recoveryPacket.activeExperiment.status})`);
+      lines.push(`Expected signal: ${input.recoveryPacket.activeExperiment.expectedSignal}`);
+      lines.push(`Why different: ${input.recoveryPacket.activeExperiment.whyDifferent}`);
+    }
     if (input.recoveryPacket.contract) {
       lines.push(`Contract: ${input.recoveryPacket.contract.outcome}`);
     }

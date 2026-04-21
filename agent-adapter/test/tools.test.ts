@@ -22,6 +22,9 @@ import { policyGetCurrent } from '../src/tools/policy-get-current.js';
 import { reflectionCreate } from '../src/tools/reflection-create.js';
 import { knowledgeCreate } from '../src/tools/knowledge-create.js';
 import { knowledgeCreate as publicKnowledgeCreate } from '../src/index.js';
+import { experimentCreate } from '../src/tools/experiment-create.js';
+import { experimentGet } from '../src/tools/experiment-get.js';
+import { experimentUpdate } from '../src/tools/experiment-update.js';
 
 // ─── Mock fetch ───────────────────────────────────────────────────────────────
 
@@ -172,8 +175,9 @@ describe('attemptAppend', () => {
   it('serializes camelCase input to snake_case request body', async () => {
     const fetch = mockFetch(201, {
       data: {
-        id: 'attempt_1',
-        goal_id: 'goal_1',
+	        id: 'attempt_1',
+	        goal_id: 'goal_1',
+          experiment_id: 'exp_1',
         stage: 'research',
         action_taken: '搜索',
         strategy_tags: ['broad-web-search'],
@@ -186,6 +190,7 @@ describe('attemptAppend', () => {
     const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
     const result = await attemptAppend(client, {
       goalId: 'goal_1',
+      experimentId: 'exp_1',
       stage: 'research',
       actionTaken: '搜索',
       strategyTags: ['broad-web-search'],
@@ -196,12 +201,85 @@ describe('attemptAppend', () => {
     // 验证 fetch 被调用时传入了 snake_case body
     const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
     expect(callBody.strategy_tags).toEqual(['broad-web-search']);
-    expect(callBody.goal_id).toBe('goal_1');
-    expect(callBody.action_taken).toBe('搜索');
+	    expect(callBody.goal_id).toBe('goal_1');
+    expect(callBody.experiment_id).toBe('exp_1');
+	    expect(callBody.action_taken).toBe('搜索');
 
     // 返回结果是 camelCase
-    expect(result.id).toBe('attempt_1');
-    expect(result.goalId).toBe('goal_1');
+	    expect(result.id).toBe('attempt_1');
+	    expect(result.goalId).toBe('goal_1');
+    expect(result.experimentId).toBe('exp_1');
+	  });
+	});
+
+describe('experiment tools', () => {
+  it('serializes experiment create payload and parses response', async () => {
+    const fetch = mockFetch(201, {
+      data: {
+        id: 'exp_1',
+        goal_id: 'goal_1',
+        stage: 'channel-validation',
+        hypothesis: 'Direct outreach is faster',
+        action_plan: 'Prepare drafts',
+        expected_signal: 'At least one reply',
+        cost_level: 'low',
+        boundary_level: 'safe',
+        why_different: 'Switches from broad search',
+        status: 'active',
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+
+    const experiment = await experimentCreate(client, {
+      goalId: 'goal_1',
+      stage: 'channel-validation',
+      hypothesis: 'Direct outreach is faster',
+      actionPlan: 'Prepare drafts',
+      expectedSignal: 'At least one reply',
+      costLevel: 'low',
+      boundaryLevel: 'safe',
+      whyDifferent: 'Switches from broad search',
+      status: 'active',
+    });
+
+    const callBody = JSON.parse((fetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.expected_signal).toBe('At least one reply');
+    expect(callBody.why_different).toBe('Switches from broad search');
+    expect(experiment.goalId).toBe('goal_1');
+    expect(experiment.expectedSignal).toBe('At least one reply');
+  });
+
+  it('gets and updates experiments', async () => {
+    const response = {
+      data: {
+        id: 'exp_1',
+        goal_id: 'goal_1',
+        stage: 'channel-validation',
+        hypothesis: 'Direct outreach is faster',
+        action_plan: 'Prepare drafts',
+        expected_signal: 'At least one reply',
+        cost_level: 'low',
+        boundary_level: 'safe',
+        why_different: 'Switches from broad search',
+        status: 'active',
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+    };
+    const fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => response })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => response });
+    const client = new AdapterClient(BASE_URL, fetch as unknown as typeof globalThis.fetch);
+
+    expect((await experimentGet(client, 'exp_1')).id).toBe('exp_1');
+    await experimentUpdate(client, 'exp_1', { status: 'blocked', expectedSignal: 'Permission granted' });
+
+    const [, init] = fetch.mock.calls[1] as [string, RequestInit];
+    const callBody = JSON.parse(init.body as string);
+    expect(callBody.status).toBe('blocked');
+    expect(callBody.expected_signal).toBe('Permission granted');
   });
 });
 
@@ -465,6 +543,20 @@ describe('recoveryPacketGet', () => {
           preferred_next_step: '切换到官方文档',
           must_check_before_retry: ['确认不同路径'],
         },
+        active_experiment: {
+          id: 'exp_1',
+          goal_id: 'goal_1',
+          stage: 'channel-validation',
+          hypothesis: 'Direct outreach is faster',
+          action_plan: 'Prepare drafts',
+          expected_signal: 'At least one reply',
+          cost_level: 'low',
+          boundary_level: 'safe',
+          why_different: 'Switches from broad search',
+          status: 'active',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
         recent_attempts: [
           {
             id: 'attempt_1',
@@ -500,6 +592,8 @@ describe('recoveryPacketGet', () => {
     expect(packet.goalTitle).toBe('目标');
     expect(packet.generatedAt).toBe('2026-01-01T00:00:00.000Z');
     expect(packet.currentPolicy?.mustCheckBeforeRetry).toEqual(['确认不同路径']);
+    expect(packet.activeExperiment?.expectedSignal).toBe('At least one reply');
+    expect(packet.activeExperiment?.whyDifferent).toBe('Switches from broad search');
     expect(packet.recentAttempts[0].actionTaken).toBe('搜索失败');
     expect(packet.relevantKnowledge[0].implication).toBe('Check official pages.');
     expect(packet.openQuestions).toEqual(['Which source is authoritative?']);

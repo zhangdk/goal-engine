@@ -51,12 +51,19 @@ export async function recoverGoalSession(
     sharedWisdom: packet.sharedWisdom,
   });
 
-  return {
-    summary: [
-      'Recovery summary:',
-      `Goal: ${packet.goalTitle}`,
-      `Stage: ${packet.currentStage}`,
-      `Last failure: ${packet.lastFailureSummary ?? 'None'}`,
+	  return {
+	    summary: [
+	      'Recovery summary:',
+	      `Goal: ${packet.goalTitle}`,
+	      `Stage: ${packet.currentStage}`,
+      ...(packet.activeExperiment
+        ? [
+            `Active experiment: ${packet.activeExperiment.stage} (${packet.activeExperiment.status})`,
+            `Expected signal: ${packet.activeExperiment.expectedSignal}`,
+            `Why different: ${packet.activeExperiment.whyDifferent}`,
+          ]
+        : []),
+	      `Last failure: ${packet.lastFailureSummary ?? 'None'}`,
       `Recommended next step: ${packet.preferredNextStep ?? 'None'}`,
       `Projection: ${projectionMissing ? 'rebuilt from service' : 'already available'}`,
       policySummary,

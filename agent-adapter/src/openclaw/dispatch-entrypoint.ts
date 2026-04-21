@@ -44,6 +44,7 @@ type SuperviseExternalGoalInput = {
 };
 
 type RecordFailedAttemptInput = {
+  experimentId?: string;
   stage: string;
   actionTaken: string;
   strategyTags: string[];
@@ -163,6 +164,7 @@ export async function dispatchEntrypoint(
       const failureType = normalizeFailureType(request.input.failureType);
       const result = await recordFailureAndRefresh(client, {
         goalId: goal.id,
+        experimentId: request.input.experimentId,
         stage: request.input.stage,
         actionTaken: request.input.actionTaken,
         strategyTags: request.input.strategyTags,
