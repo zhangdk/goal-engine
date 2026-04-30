@@ -9,7 +9,7 @@ For a deeper dive into the vision and architecture, see:
 
 ## Core Philosophy
 
-![Goal Engine Architecture](assets/images/architecture.svg)
+![Goal Engine Architecture](assets/images/goal-engine-logical-architecture.svg)
 
 - **Goal Persistence:** Goals survive session restarts, failures, and environment resets.
 - **Goal Contracts:** Every goal is governed by a formal contract (outcome, success criteria, autonomy level, and boundary rules).

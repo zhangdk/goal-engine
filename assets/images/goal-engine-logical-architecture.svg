@@ -1,0 +1,178 @@
+<svg width="1480" height="980" viewBox="0 0 1480 980" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Goal Engine Logical Architecture</title>
+  <desc id="desc">Logical architecture diagram showing Goal Engine as a durable control and memory plane for host agents, with the main goal evolution flow from goal contract through experiment, attempt, evidence, reflection, learning, policy, retry and recovery.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f8fb; }
+      .title { font: 700 30px Arial, sans-serif; fill: #172033; }
+      .subtitle { font: 400 15px Arial, sans-serif; fill: #51607c; }
+      .layer { fill: #ffffff; stroke: #d0d7e2; stroke-width: 2; rx: 18; ry: 18; }
+      .layerHost { fill: #eef6ff; stroke: #5b92e5; }
+      .layerAdapter { fill: #effbf3; stroke: #55a86a; }
+      .layerService { fill: #fff8e8; stroke: #d59a2f; }
+      .layerStore { fill: #f2edff; stroke: #8a6be8; }
+      .layerObserver { fill: #f8eff6; stroke: #c56aa0; }
+      .layerTitle { font: 700 18px Arial, sans-serif; fill: #172033; }
+      .layerNote { font: 400 12px Arial, sans-serif; fill: #64708a; }
+      .box { fill: #ffffff; stroke: #c5cfdd; stroke-width: 1.5; rx: 12; ry: 12; }
+      .boxBlue { fill: #e7f1ff; stroke: #4f84d8; }
+      .boxGreen { fill: #e9f8ee; stroke: #4e9a62; }
+      .boxGold { fill: #fff2cf; stroke: #d08b1f; }
+      .boxPurple { fill: #f1ebff; stroke: #8164d9; }
+      .boxPink { fill: #fdebf5; stroke: #bf5f99; }
+      .boxGray { fill: #f7f9fc; stroke: #aeb8c8; }
+      .boxFuture { fill: #ffffff; stroke: #9aa6b7; stroke-width: 1.5; stroke-dasharray: 7 5; rx: 12; ry: 12; }
+      .label { font: 700 14px Arial, sans-serif; fill: #20304a; }
+      .small { font: 400 12px Arial, sans-serif; fill: #4b5a73; }
+      .tiny { font: 400 11px Arial, sans-serif; fill: #65728a; }
+      .num { font: 700 12px Arial, sans-serif; fill: #ffffff; }
+      .flow { stroke: #2563eb; stroke-width: 2.4; fill: none; marker-end: url(#arrowBlue); }
+      .flowBack { stroke: #b45309; stroke-width: 2.4; fill: none; marker-end: url(#arrowAmber); }
+      .api { stroke: #16a34a; stroke-width: 2.2; fill: none; marker-end: url(#arrowGreen); }
+      .read { stroke: #7c3aed; stroke-width: 2.1; fill: none; marker-end: url(#arrowPurple); stroke-dasharray: 6 5; }
+      .boundary { stroke: #9aa6b7; stroke-width: 1.6; stroke-dasharray: 9 7; fill: none; }
+      .arrowLabel { font: 700 11px Arial, sans-serif; fill: #30415f; }
+      .chip { fill: #172033; rx: 10; ry: 10; }
+    </style>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#b45309"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1480" height="980"/>
+  <text class="title" x="64" y="58">Goal Engine Logical Architecture</text>
+  <text class="subtitle" x="64" y="84">Control and memory plane for long-horizon agent goals. Host agents execute; Goal Engine stores facts, guards retries, and recovers evolution state.</text>
+  <rect class="layer layerHost" x="54" y="120" width="310" height="710"/>
+  <text class="layerTitle" x="84" y="154">Host Execution Layer</text>
+  <text class="layerNote" x="84" y="176">Outside Goal Engine boundary</text>
+  <rect class="box boxBlue" x="84" y="210" width="250" height="82"/>
+  <text class="label" x="209" y="240" text-anchor="middle">OpenClaw Agent</text>
+  <text class="small" x="209" y="262" text-anchor="middle">plans, acts, calls tools</text>
+  <rect class="box boxBlue" x="84" y="326" width="250" height="82"/>
+  <text class="label" x="209" y="356" text-anchor="middle">External Tools</text>
+  <text class="small" x="209" y="378" text-anchor="middle">browser, files, APIs, messages</text>
+  <rect class="box boxGray" x="84" y="442" width="250" height="92"/>
+  <text class="label" x="209" y="472" text-anchor="middle">Local Workspace Projection</text>
+  <text class="small" x="209" y="494" text-anchor="middle">model-readable summaries</text>
+  <text class="tiny" x="209" y="514" text-anchor="middle">not authoritative facts</text>
+  <rect class="box boxBlue" x="84" y="646" width="250" height="74"/>
+  <text class="label" x="209" y="674" text-anchor="middle">User / Operator</text>
+  <text class="small" x="209" y="696" text-anchor="middle">sets goal, approves boundaries</text>
+  <rect class="layer layerAdapter" x="410" y="120" width="310" height="710"/>
+  <text class="layerTitle" x="440" y="154">Agent Adapter Layer</text>
+  <text class="layerNote" x="440" y="176">OpenClaw-facing orchestration</text>
+  <rect class="box boxGreen" x="440" y="210" width="250" height="76"/>
+  <text class="label" x="565" y="239" text-anchor="middle">Entrypoint Dispatcher</text>
+  <text class="small" x="565" y="261" text-anchor="middle">start, status, retry, recover</text>
+  <rect class="box boxGreen" x="440" y="320" width="250" height="76"/>
+  <text class="label" x="565" y="349" text-anchor="middle">Workflow Manager</text>
+  <text class="small" x="565" y="371" text-anchor="middle">goal session and writeback flow</text>
+  <rect class="box boxGreen" x="440" y="430" width="250" height="76"/>
+  <text class="label" x="565" y="459" text-anchor="middle">Retry Guard Client</text>
+  <text class="small" x="565" y="481" text-anchor="middle">checks meaningful change</text>
+  <rect class="box boxGreen" x="440" y="540" width="250" height="76"/>
+  <text class="label" x="565" y="569" text-anchor="middle">Recovery Client</text>
+  <text class="small" x="565" y="591" text-anchor="middle">restores active evolution state</text>
+  <rect class="box boxGreen" x="440" y="650" width="250" height="76"/>
+  <text class="label" x="565" y="679" text-anchor="middle">Projection Refresher</text>
+  <text class="small" x="565" y="701" text-anchor="middle">writes local summaries only</text>
+  <rect class="layer layerService" x="766" y="120" width="420" height="710"/>
+  <text class="layerTitle" x="796" y="154">Goal Engine Service</text>
+  <text class="layerNote" x="796" y="176">Authoritative control plane</text>
+  <rect class="box boxGold" x="796" y="210" width="160" height="70"/>
+  <text class="label" x="876" y="238" text-anchor="middle">Goal Contract</text>
+  <text class="small" x="876" y="260" text-anchor="middle">outcome and boundaries</text>
+  <rect class="box boxGold" x="996" y="210" width="160" height="70"/>
+  <text class="label" x="1076" y="238" text-anchor="middle">Experiment</text>
+  <text class="small" x="1076" y="260" text-anchor="middle">bounded hypothesis</text>
+  <rect class="box boxGold" x="796" y="322" width="160" height="70"/>
+  <text class="label" x="876" y="350" text-anchor="middle">Attempt</text>
+  <text class="small" x="876" y="372" text-anchor="middle">what happened</text>
+  <rect class="box boxGold" x="996" y="322" width="160" height="70"/>
+  <text class="label" x="1076" y="350" text-anchor="middle">Evidence</text>
+  <text class="small" x="1076" y="372" text-anchor="middle">verifiable signal</text>
+  <rect class="box boxGold" x="796" y="434" width="160" height="70"/>
+  <text class="label" x="876" y="462" text-anchor="middle">Reflection</text>
+  <text class="small" x="876" y="484" text-anchor="middle">root cause and change</text>
+  <rect class="box boxGold" x="996" y="434" width="160" height="70"/>
+  <text class="label" x="1076" y="462" text-anchor="middle">Learning / Policy</text>
+  <text class="small" x="1076" y="484" text-anchor="middle">guidance and constraints</text>
+  <rect class="box boxGold" x="796" y="546" width="160" height="70"/>
+  <text class="label" x="876" y="574" text-anchor="middle">Retry Guard</text>
+  <text class="small" x="876" y="596" text-anchor="middle">allow or block</text>
+  <rect class="box boxGold" x="996" y="546" width="160" height="70"/>
+  <text class="label" x="1076" y="574" text-anchor="middle">Recovery Packet</text>
+  <text class="small" x="1076" y="596" text-anchor="middle">resume control state</text>
+  <rect class="boxFuture" x="796" y="666" width="160" height="78"/>
+  <text class="label" x="876" y="694" text-anchor="middle">Next Slice</text>
+  <text class="small" x="876" y="716" text-anchor="middle">structured retry delta</text>
+  <rect class="boxFuture" x="996" y="666" width="160" height="78"/>
+  <text class="label" x="1076" y="694" text-anchor="middle">Future Slice</text>
+  <text class="small" x="1076" y="716" text-anchor="middle">policy as replanner</text>
+  <rect class="layer layerStore" x="1232" y="120" width="194" height="382"/>
+  <text class="layerTitle" x="1260" y="154">Fact Store</text>
+  <text class="layerNote" x="1260" y="176">SQLite now</text>
+  <rect class="box boxPurple" x="1262" y="210" width="134" height="56"/>
+  <text class="label" x="1329" y="236" text-anchor="middle">Goals</text>
+  <text class="tiny" x="1329" y="254" text-anchor="middle">contracts</text>
+  <rect class="box boxPurple" x="1262" y="292" width="134" height="56"/>
+  <text class="label" x="1329" y="318" text-anchor="middle">Experiments</text>
+  <text class="tiny" x="1329" y="336" text-anchor="middle">active unit</text>
+  <rect class="box boxPurple" x="1262" y="374" width="134" height="56"/>
+  <text class="label" x="1329" y="400" text-anchor="middle">Evidence</text>
+  <text class="tiny" x="1329" y="418" text-anchor="middle">completion ids</text>
+  <rect class="layer layerObserver" x="1232" y="542" width="194" height="288"/>
+  <text class="layerTitle" x="1260" y="576">Observer UI</text>
+  <text class="layerNote" x="1260" y="598">Read-only product surface</text>
+  <rect class="box boxPink" x="1262" y="632" width="134" height="56"/>
+  <text class="label" x="1329" y="658" text-anchor="middle">Agent Detail</text>
+  <text class="tiny" x="1329" y="676" text-anchor="middle">goal state</text>
+  <rect class="box boxPink" x="1262" y="714" width="134" height="56"/>
+  <text class="label" x="1329" y="740" text-anchor="middle">Timeline</text>
+  <text class="tiny" x="1329" y="758" text-anchor="middle">evidence and events</text>
+  <path class="boundary" d="M740,104 L740,846"/>
+  <text class="tiny" x="752" y="108">Goal Engine boundary starts here</text>
+  <path class="api" d="M334,251 L440,248"/>
+  <text class="arrowLabel" x="362" y="236">tool call</text>
+  <path class="api" d="M690,248 L796,245"/>
+  <text class="arrowLabel" x="714" y="232">HTTP/API</text>
+  <path class="api" d="M690,468 L796,581"/>
+  <text class="arrowLabel" x="706" y="512">retry check</text>
+  <path class="api" d="M690,578 L996,581"/>
+  <text class="arrowLabel" x="808" y="565">recover state</text>
+  <path class="read" d="M1232,254 L1156,245"/>
+  <path class="read" d="M1232,322 L1156,245"/>
+  <path class="read" d="M1232,402 L1156,357"/>
+  <path class="read" d="M1262,660 L1156,581"/>
+  <text class="arrowLabel" x="1184" y="646">read derived views</text>
+  <path class="api" d="M440,688 L334,488"/>
+  <text class="arrowLabel" x="350" y="602">refresh projection</text>
+  <path class="flow" d="M956,245 L996,245"/>
+  <path class="flow" d="M1076,280 L1076,303 L876,303 L876,322"/>
+  <path class="flow" d="M956,357 L996,357"/>
+  <path class="flow" d="M1076,392 L1076,416 L876,416 L876,434"/>
+  <path class="flow" d="M956,469 L996,469"/>
+  <path class="flow" d="M1076,504 L1076,528 L876,528 L876,546"/>
+  <path class="flow" d="M956,581 L996,581"/>
+  <path class="flowBack" d="M1076,546 L1076,194 L1076,194 L1076,210"/>
+  <text class="arrowLabel" x="1090" y="190">next experiment</text>
+  <circle class="chip" cx="779" cy="245" r="13"/><text class="num" x="779" y="249" text-anchor="middle">1</text>
+  <circle class="chip" cx="976" cy="245" r="13"/><text class="num" x="976" y="249" text-anchor="middle">2</text>
+  <circle class="chip" cx="1076" cy="303" r="13"/><text class="num" x="1076" y="307" text-anchor="middle">3</text>
+  <circle class="chip" cx="976" cy="357" r="13"/><text class="num" x="976" y="361" text-anchor="middle">4</text>
+  <circle class="chip" cx="1076" cy="416" r="13"/><text class="num" x="1076" y="420" text-anchor="middle">5</text>
+  <circle class="chip" cx="976" cy="469" r="13"/><text class="num" x="976" y="473" text-anchor="middle">6</text>
+  <circle class="chip" cx="1076" cy="528" r="13"/><text class="num" x="1076" y="532" text-anchor="middle">7</text>
+  <circle class="chip" cx="976" cy="581" r="13"/><text class="num" x="976" y="585" text-anchor="middle">8</text>
+  <rect class="box boxGray" x="54" y="866" width="1372" height="72"/>
+  <text class="label" x="84" y="894">Flow legend</text>
+  <text class="small" x="84" y="918">1 user goal enters through adapter API; 2 contract creates bounded experiment; 3 host agent executes attempt; 4 attempt writes evidence; 5 evidence drives reflection; 6 reflection updates learning and policy; 7 retry/recovery use policy; 8 recovery feeds the next experiment without moving execution ownership into Goal Engine.</text>
+</svg>

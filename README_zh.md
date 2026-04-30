@@ -9,7 +9,7 @@ Goal Engine 是一个为自主智能体（OpenClaw Agent）设计的持久化目
 
 ## 核心理念
 
-![Goal Engine Architecture](assets/images/architecture.svg)
+![Goal Engine 逻辑架构](assets/images/goal-engine-logical-architecture-zh.svg)
 
 - **目标持久化**：目标在会话重启、失败或环境重置后依然存续。
 - **目标合约 (Goal Contracts)**：每个目标受正式合约约束（预期结果、成功证据、自主等级和边界规则）。
